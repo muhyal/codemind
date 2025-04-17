@@ -144,6 +144,29 @@ class DataManager: ObservableObject {
         saveSessions()
     }
 
+    // Clears all entries from a specific session
+    func clearEntries(sessionId: UUID) {
+        guard let index = chatSessions.firstIndex(where: { $0.id == sessionId }) else {
+            print("DataManager Error: Cannot clear entries, session ID \(sessionId) not found.")
+            return
+        }
+        
+        // Check if there are actually entries to clear
+        guard !chatSessions[index].entries.isEmpty else {
+            print("DataManager: No entries to clear in session \(sessionId).")
+            return
+        }
+        
+        // Manually signal change before modifying the struct's array
+        objectWillChange.send()
+        
+        chatSessions[index].entries.removeAll()
+        print("DataManager: Cleared all entries for session \(sessionId).")
+        
+        // Save changes
+        saveSessions()
+    }
+
     // Saves the current sessions array to UserDefaults
     private func saveSessions() {
         do {

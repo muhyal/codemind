@@ -3,7 +3,6 @@
 [![macOS](https://img.shields.io/badge/macOS-14.0%2B-blue)](https://www.apple.com/macos)
 [![Swift](https://img.shields.io/badge/Swift-5.x-orange.svg)](https://swift.org)
 [![SwiftUI](https://img.shields.io/badge/SwiftUI-Modern-green.svg)](https://developer.apple.com/xcode/swiftui/)
-<!-- [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) --> // Lisans eklerseniz bu satırı aktif edin
 
 Google'ın Gemini AI modelleriyle sohbet etmek için kusursuz, klavye odaklı bir arayüz sağlayan yerel bir macOS uygulamasıdır. Modern bir kullanıcı deneyimi için SwiftUI ile oluşturulmuştur.
 
@@ -73,4 +72,6 @@ Katkılarınız memnuniyetle karşılanır! Lütfen bir Pull Request göndermekt
 
 ## 📄 Lisans
 
-<!-- Projenizin lisansını buraya belirtin (Örn: MIT License) --> 
+Bu proje, kaynak kodunu inceleme, değiştirme ve kişisel, eğitim veya kar amacı gütmeyen projelerde kullanma özgürlüğü sunan açık kaynaklı bir yazılımdır.
+
+**Ancak, bu yazılımın veya türevlerinin herhangi bir ticari amaçla kullanılması kesinlikle yasaktır.** Ticari kullanım için ayrı bir lisans anlaşması gereklidir. Daha fazla bilgi için lütfen proje sahibiyle iletişime geçin. 

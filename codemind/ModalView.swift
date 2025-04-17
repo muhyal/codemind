@@ -51,6 +51,13 @@ struct ModalView: View {
         var id: String { self.rawValue }
     }
     @State private var selectedFilter: SidebarFilter = .all
+    
+    // State for chat search
+    @State private var searchText: String = ""
+    
+    // State for confirmation dialogs
+    @State private var showingClearConfirm: Bool = false
+    @State private var showingDeleteConfirm: Bool = false
 
     // Service for API calls
     private let geminiService = GeminiService()
@@ -89,12 +96,70 @@ struct ModalView: View {
         }
         // Pass DataManager to the environment
         .environmentObject(dataManager)
+        // Add Toolbar for Search and Menu
+        .toolbar {
+            ToolbarItemGroup(placement: .navigation) { // Use .navigation or .primaryAction based on desired look
+                // Search Bar (integrated via searchable modifier)
+                Spacer() // Pushes items to the right
+                
+                // Action Menu
+                Menu {
+                    Button {
+                        copyChatToPasteboard()
+                    } label: {
+                        Label("Export Chat (Copy)", systemImage: "doc.text")
+                    }
+                    
+                    Button(role: .destructive) {
+                       showingClearConfirm = true
+                    } label: {
+                       Label("Clear All Messages", systemImage: "clear")
+                    }
+                    
+                    Button(role: .destructive) {
+                         showingDeleteConfirm = true
+                     } label: {
+                         Label("Delete Current Session", systemImage: "trash")
+                     }
+                    
+                } label: {
+                    Label("More Actions", systemImage: "ellipsis.circle")
+                }
+                .menuIndicator(.hidden) // Optional: Hide the default down arrow
+            }
+        }
+        .searchable(text: $searchText, placement: .toolbar) // Add searchable modifier
+         // Confirmation Dialogs
+        .confirmationDialog(
+             "Clear all messages in this chat? This cannot be undone.",
+             isPresented: $showingClearConfirm,
+             titleVisibility: .visible
+        ) {
+             Button("Clear Messages", role: .destructive) {
+                 if let sessionId = dataManager.activeSessionId {
+                     dataManager.clearEntries(sessionId: sessionId)
+                 }
+             }
+             Button("Cancel", role: .cancel) {}
+        }
+         .confirmationDialog(
+              "Delete this entire chat session? This cannot be undone.",
+              isPresented: $showingDeleteConfirm,
+              titleVisibility: .visible
+         ) {
+              Button("Delete Session", role: .destructive) {
+                  if let sessionId = dataManager.activeSessionId {
+                      dataManager.deleteSession(withId: sessionId)
+                  }
+              }
+              Button("Cancel", role: .cancel) {}
+         }
     }
 
     // MARK: - Computed Properties
     
-    /// Transforms ChatEntries into a list of individual messages for display.
-    private var displayMessages: [DisplayMessage] {
+    /// Transforms ChatEntries into a list of individual messages for display, applying search filter.
+    private var filteredDisplayMessages: [DisplayMessage] {
         dataManager.activeSessionEntries.flatMap { entry -> [DisplayMessage] in
             var messages: [DisplayMessage] = []
             // Add user message
@@ -129,8 +194,10 @@ struct ModalView: View {
             }
             return messages
         }
-        // Ensure messages are sorted chronologically if needed, though flatMap should preserve order from entries
-        // .sorted { $0.timestamp < $1.timestamp } // Usually not needed if entries are ordered
+        // Filter messages based on search text
+        .filter { message in
+            searchText.isEmpty || message.content.localizedCaseInsensitiveContains(searchText)
+        }
     }
     
     /// The content view for the sidebar.
@@ -239,10 +306,10 @@ struct ModalView: View {
     /// The content view for the detail area (chat interface).
     private var detailContent: some View {
         VStack(spacing: 0) {
-            // Chat Entries List - Now iterates over displayMessages
+            // Chat Entries List - Now iterates over filteredDisplayMessages
             ScrollViewReader { scrollViewProxy in
-                List(displayMessages) { message in // <-- Iterate over DisplayMessage
-                     ChatBubble(message: message) // <-- Pass DisplayMessage to ChatBubble
+                List(filteredDisplayMessages) { message in // <-- Iterate over Filtered DisplayMessage
+                     ChatBubble(message: message)
                          .id(message.id) // ID for scrolling
                          .listRowInsets(EdgeInsets()) // Remove insets for full width bubbles
                          .listRowSeparator(.hidden)
@@ -250,7 +317,7 @@ struct ModalView: View {
                 .listStyle(.plain)
                 .background(colorScheme == .dark ? Color(.controlBackgroundColor) : Color(.textBackgroundColor))
                 // Adjust scrolling logic if needed based on the new structure
-                .onChange(of: displayMessages.count) { _ in 
+                .onChange(of: filteredDisplayMessages.count) { _ in 
                     scrollToBottom(proxy: scrollViewProxy)
                 }
                 .onAppear {
@@ -344,8 +411,8 @@ struct ModalView: View {
 
     // Helper function to scroll to the bottom of the chat list
     private func scrollToBottom(proxy: ScrollViewProxy) {
-        // Now scroll to the last message in the displayMessages array
-        guard let lastMessageId = displayMessages.last?.id else { return }
+        // Now scroll to the last message in the filteredDisplayMessages array
+        guard let lastMessageId = filteredDisplayMessages.last?.id else { return }
         proxy.scrollTo(lastMessageId, anchor: .bottom)
     }
 
@@ -395,6 +462,26 @@ struct ModalView: View {
             statusText = "Error: \(error.localizedDescription)"
             // Optionally, re-add user input to the text field on error?
             // userInput = currentInput
+        }
+    }
+
+    // Helper function to copy formatted chat to pasteboard
+    private func copyChatToPasteboard() {
+        guard dataManager.activeSessionId != nil else { return }
+        
+        // Use filteredDisplayMessages for copying
+        let formattedText = filteredDisplayMessages.map { message -> String in
+            let prefix = message.role == .user ? "User:" : "AI:"
+            return "\(prefix)\n\(message.content)\n"
+        }.joined(separator: "\n---\n")
+        
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(formattedText, forType: .string)
+        statusText = "Chat copied to clipboard."
+        // Clear status after a delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            statusText = ""
         }
     }
 }
@@ -447,20 +534,25 @@ struct ChatBubble: View {
                         .textSelection(.enabled)
                     
                     Image(systemName: "person.crop.circle.fill")
-                        .font(.title2)
-                        .foregroundColor(.secondary)
+                        .font(.title3)
+                        .foregroundColor(.white)
+                        .frame(width: 28, height: 28)
+                        .background(Color.blue)
+                        .clipShape(Circle())
                 }
                 .padding(.leading, 40) // Ensure bubble doesn't touch left edge
                 .padding(.trailing, 10) // Padding on the right
                 
             } else { // message.role == .model
-                HStack(alignment: .bottom, spacing: 5) {
+                HStack(alignment: .bottom, spacing: 5) { // HStack for Avatar and Content VStack
                     Image(systemName: "sparkle")
-                        .font(.title2)
-                        .foregroundColor(.purple)
-                        .padding(.top, 5) // Align slightly lower if needed
+                        .font(.title3)
+                        .foregroundColor(.white)
+                        .frame(width: 28, height: 28)
+                        .background(Color.purple)
+                        .clipShape(Circle())
                     
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 4) { // VStack for Bubble/Buttons ZStack and Metadata
                         // ZStack for Bubble and Top-Left Buttons
                         ZStack(alignment: .topLeading) {
                             // AI Bubble Content (Markdown or Raw)
@@ -473,47 +565,87 @@ struct ChatBubble: View {
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                             .textSelection(.enabled)
                                     }
-                                    // Consistent background/corner for ScrollView
                                     .background(colorScheme == .dark ? Color.gray.opacity(0.2) : Color.gray.opacity(0.1))
                                     .cornerRadius(15)
-                                    
                                 } else {
                                     Markdown(message.content)
                                         .textSelection(.enabled)
                                         .padding(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
                                         .background(colorScheme == .dark ? Color.gray.opacity(0.4) : Color.gray.opacity(0.15))
                                         .cornerRadius(15)
-                                        // Remove fixedSize, let ZStack manage width with padding
+                                }
                             }
-                        }
-                         // Add padding to the bubble content to avoid buttons overlapping too much text
-                        .padding(.top, 25) // Space for buttons above
-                        .padding(.leading, 5) // Minor leading space
+                             // Add padding to the bubble content for buttons
+                            .padding(.top, 25)
+                            .padding(.leading, 5)
 
-                        // Action buttons (Copy, Delete, Raw/Rendered) in Top-Left
-                        actionButtons
-                            .padding(4) // Padding around the button group
-                            .background(.ultraThinMaterial, in: Capsule()) // Subtle background
-                            .padding([.leading, .top], 6) // Position slightly offset from corner
-                    }
-                }
+                            // Action buttons in Top-Left
+                            actionButtons
+                                .padding(4)
+                                .background(.ultraThinMaterial, in: Capsule())
+                                .padding([.leading, .top], 6)
+                        }
+                        
+                        // Metadata Display (Below the ZStack, inside the VStack)
+                        if let metadata = message.metadata {
+                            metadataView(metadata: metadata)
+                        }
+                    } // End VStack for Bubble/Buttons + Metadata
+                     // Ensure content VStack doesn't stretch unnecessarily if bubble is small
+                    .layoutPriority(1)
+                    
+                } // End HStack for Avatar and Content VStack
                 .padding(.trailing, 40) // Ensure bubble doesn't touch right edge
                 .padding(.leading, 10) // Padding on the left
                 
-                Spacer() // Push AI message left
+                Spacer() // Push AI message group left
             }
         }
         .padding(.vertical, 5)
+        // Add context menu to the entire row
+        .contextMenu {
+            if message.role == .user {
+                Button {
+                    let pasteboard = NSPasteboard.general
+                    pasteboard.clearContents()
+                    pasteboard.setString(message.content, forType: .string)
+                } label: {
+                    Label("Copy Question", systemImage: "doc.on.doc")
+                }
+                
+                Button(role: .destructive) {
+                     dataManager.deleteEntry(entryId: message.entryId)
+                 } label: {
+                     Label("Delete Entry", systemImage: "trash")
+                 }
+            } else { // .model
+                 Button {
+                     let pasteboard = NSPasteboard.general
+                     pasteboard.clearContents()
+                     pasteboard.setString(message.content, forType: .string)
+                 } label: {
+                     Label("Copy Answer", systemImage: "doc.on.doc")
+                 }
+                 
+                 Button(role: .destructive) {
+                      dataManager.deleteEntry(entryId: message.entryId)
+                  } label: {
+                      Label("Delete Entry", systemImage: "trash")
+                  }
+            }
+        }
     }
 
-    // Helper for Metadata View (Simplified)
+    // Helper for Metadata View (Restored details)
     @ViewBuilder
     private func metadataView(metadata: ChatEntryMetadata) -> some View {
-        // Only show Latency and Model
+        // Show relevant metadata + timestamp
         HStack(spacing: 8) {
+            if let wc = metadata.wordCount { Text("WC: \(wc)") }
+            if let tc = metadata.candidatesTokenCount { Text("TC: \(tc)") } // Show candidate tokens
+            if let tt = metadata.totalTokenCount { Text("Used: \(tt)") }
             if let rt = metadata.responseTimeMs { Text("Latency: \(rt)ms") }
-            if let model = metadata.modelName { Text("Model: \(model)") }
-             // Keep timestamp for context if needed, or remove
+            if let model = metadata.modelName { Text("Model: \(model.replacingOccurrences(of: "gemini-", with: ""))") } // Shorten model name
              Text(message.timestamp, style: .time)
         }
         .font(.caption2)
@@ -524,25 +656,31 @@ struct ChatBubble: View {
     
     // Helper computed property for action buttons (Horizontal layout)
     private var actionButtons: some View {
-        HStack(spacing: 8) { // <-- Change to HStack
+        HStack(spacing: 6) { // Reduce spacing
              // Toggle Raw/Rendered Button
-             Button { showRawMarkdown.toggle() } label: { Image(systemName: showRawMarkdown ? "doc.richtext.fill" : "doc.plaintext") }
+             Button { showRawMarkdown.toggle() } label: { Image(systemName: showRawMarkdown ? "doc.richtext.fill" : "doc.plaintext").font(.footnote) } // Smaller icon
+                .buttonStyle(.plain)
+                .help(showRawMarkdown ? "Rendered - Show Rendered" : "Raw - Show Raw Markdown")
             
             Button { // Copy
                 let pasteboard = NSPasteboard.general
                 pasteboard.clearContents()
                 pasteboard.setString(message.content, forType: .string)
-            } label: { Image(systemName: "doc.on.doc") }
+            } label: { Image(systemName: "doc.on.doc").font(.footnote) } // Smaller icon
                 .buttonStyle(.plain)
                 .help("Copy - Copy Answer")
             
             Button { // Delete
                 dataManager.deleteEntry(entryId: message.entryId) // Use entryId
-            } label: { Image(systemName: "trash") }
+            } label: { Image(systemName: "trash").font(.footnote) } // Smaller icon
                 .buttonStyle(.plain)
                 .foregroundColor(.red)
                 .help("Delete - Delete Entry")
         }
+        // Adjust padding and background for minimality
+        .padding(.horizontal, 5)
+        .padding(.vertical, 3)
+        .background(colorScheme == .dark ? Color.black.opacity(0.3) : Color.white.opacity(0.4), in: Capsule()) // More subtle background
     }
 }
 
