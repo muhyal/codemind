@@ -5,6 +5,24 @@ import GoogleGenerativeAI
 
 // MARK: - Data Structures
 
+// Folder Structure
+struct Folder: Identifiable, Codable, Equatable {
+    var id: UUID
+    var name: String
+    var parentId: UUID? // nil for root level folders
+    var createdAt: Date
+    var colorHex: String? // Folders can also have colors
+    
+    // Basic initializer
+    init(id: UUID = UUID(), name: String, parentId: UUID? = nil, createdAt: Date = Date(), colorHex: String? = nil) {
+        self.id = id
+        self.name = name
+        self.parentId = parentId
+        self.createdAt = createdAt
+        self.colorHex = colorHex
+    }
+}
+
 // Remove duplicate struct definition from here
 /*
 struct ChatSession: Identifiable, Codable, Equatable {
@@ -21,12 +39,14 @@ struct ChatSession: Identifiable, Codable, Equatable {
 
 // MARK: - Data Manager Class
 
-// Manages multiple chat sessions
+// Manages multiple chat sessions and folders
 class DataManager: ObservableObject {
     private let sessionsKey = "chatSessions_v1" // Use a new key if format changes
+    private let foldersKey = "chatFolders_v1" // Key for saving folders
 
     // Array of all chat sessions, sorted by creation date (newest first)
     @Published var chatSessions: [ChatSession] = []
+    @Published var folders: [Folder] = [] // Add published array for folders
     // ID of the currently selected/active session
     @Published var activeSessionId: UUID? = nil
 
@@ -42,6 +62,7 @@ class DataManager: ObservableObject {
     }
 
     init() {
+        loadFolders() // Load folders first
         loadSessions()
         // Ensure active session is valid on init
         if let lastActiveId = UserDefaults.standard.string(forKey: "activeSessionId"),
@@ -224,8 +245,15 @@ class DataManager: ObservableObject {
     /// Updates the color hex string for a specific session.
     func updateSessionColor(withId id: UUID, colorHex: String?) {
         guard let index = chatSessions.firstIndex(where: { $0.id == id }) else { return }
-        chatSessions[index].colorHex = colorHex
+        // Create a mutable copy of the struct
+        var sessionToUpdate = chatSessions[index]
+        // Update the property on the copy
+        sessionToUpdate.colorHex = colorHex
+        // Replace the item in the array with the updated copy
+        chatSessions[index] = sessionToUpdate
+        // No need for objectWillChange.send() as the array itself is modified
         saveSessions()
+        print("DataManager: Updated color for session \(id) to \(colorHex ?? "None")")
     }
 
     // Optional: Provides a binding to the active session's entries
@@ -240,6 +268,195 @@ class DataManager: ObservableObject {
     //            }\n
     //        )\n
     //    }
+
+    // MARK: - Folder Management
+    func createFolder(name: String, parentId: UUID? = nil, colorHex: String? = nil) {
+        print("DataManager.createFolder called with name: '\(name)', parentId: \(parentId?.uuidString ?? "nil")") // Log entry
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { 
+            print("DataManager.createFolder: Error - Folder name cannot be empty.")
+            return 
+        }
+        
+        let newFolder = Folder(name: trimmedName, parentId: parentId, colorHex: colorHex)
+        print("DataManager.createFolder: Created Folder object: \(newFolder.id)")
+        folders.append(newFolder)
+        print("DataManager.createFolder: Appended to folders array. New count: \(folders.count)")
+        saveFolders() // saveFolders already has a print statement
+    }
+
+    // ... deleteFolder, renameFolder, moveFolder, updateFolderColor ...
+
+    // MARK: - Persistence
+    private func saveFolders() {
+        do {
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            let data = try encoder.encode(folders)
+            UserDefaults.standard.set(data, forKey: foldersKey)
+            print("DataManager: Folders saved successfully.")
+        } catch {
+            print("DataManager Error: Failed to save folders: \(error.localizedDescription)")
+        }
+    }
+
+    private func loadFolders() {
+        guard let data = UserDefaults.standard.data(forKey: foldersKey) else {
+            print("DataManager: No folder data found in UserDefaults.")
+            return
+        }
+        do {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            folders = try decoder.decode([Folder].self, from: data)
+            // Optional: Sort folders?
+            print("DataManager: Folders loaded successfully (\(folders.count) folders).")
+        } catch {
+            print("DataManager Error: Failed to load folders: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Computed Properties & Helpers for UI
+    
+    /// Returns folders that are at the root level (no parent).
+    var rootFolders: [Folder] {
+        folders.filter { $0.parentId == nil }.sorted { $0.name < $1.name } // Sort alphabetically
+    }
+    
+    /// Returns sessions that are at the root level (not in any folder).
+    var rootSessions: [ChatSession] {
+        chatSessions.filter { $0.folderId == nil }.sorted { $0.createdAt > $1.createdAt } // Sort by date
+    }
+    
+    /// Returns sessions belonging to a specific folder ID.
+    func sessions(in folderId: UUID) -> [ChatSession] {
+        chatSessions.filter { $0.folderId == folderId }.sorted { $0.createdAt > $1.createdAt } // Keep sorted by date
+    }
+    
+    // Add the subfolders function back
+    /// Returns subfolders belonging to a specific folder ID.
+    func subfolders(in parentFolderId: UUID) -> [Folder] {
+        folders.filter { $0.parentId == parentFolderId }.sorted { $0.name < $1.name } // Sort alphabetically
+    }
+    
+    /// Checks if a folder or any of its descendants contain at least one favorite session.
+    func folderContainsFavorites(folderId: UUID) -> Bool {
+        // Check direct sessions in the folder
+        if sessions(in: folderId).contains(where: { $0.isFavorite }) {
+            return true
+        }
+        
+        // Recursively check subfolders
+        for subfolder in subfolders(in: folderId) {
+            if folderContainsFavorites(folderId: subfolder.id) { // Recursive call
+                return true
+            }
+        }
+        
+        // No favorites found in this branch
+        return false
+    }
+
+    // MARK: - Folder Management - NEW METHODS ADDED
+
+    /// Creates a new folder.
+    func createFolder(name: String, parentId: UUID?) {
+        guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        let newFolder = Folder(name: name, parentId: parentId)
+        folders.append(newFolder)
+        saveFolders()
+        print("DataManager: Created folder '\(name)' with id \(newFolder.id) inside parent \(parentId?.uuidString ?? "Root")")
+    }
+
+    /// Renames an existing folder.
+    func renameFolder(withId id: UUID, newName: String) {
+        guard let index = folders.firstIndex(where: { $0.id == id }) else { return }
+        guard !newName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        folders[index].name = newName
+        saveFolders()
+        print("DataManager: Renamed folder \(id) to '\(newName)'")
+    }
+
+    /// Deletes a folder and optionally its contents.
+    func deleteFolder(withId id: UUID, recursive: Bool) {
+        guard let index = folders.firstIndex(where: { $0.id == id }) else { return }
+        
+        let deletedFolder = folders.remove(at: index)
+        print("DataManager: Deleted folder '\(deletedFolder.name)' (ID: \(id))")
+        
+        // Find all direct child sessions and folders
+        let childSessionIds = chatSessions.filter { $0.folderId == id }.map { $0.id }
+        let childFolderIds = folders.filter { $0.parentId == id }.map { $0.id } // Re-check folders after removal? No, use the original list.
+
+        if recursive {
+            print("DataManager: Recursively deleting contents of folder \(id)")
+            // Recursively delete child folders
+            for childFolderId in childFolderIds {
+                deleteFolder(withId: childFolderId, recursive: true) // Call recursively
+            }
+            // Delete child sessions
+            for childSessionId in childSessionIds {
+                deleteSession(withId: childSessionId) // Assume deleteSession saves itself
+            }
+        } else {
+            print("DataManager: Moving contents of folder \(id) to root")
+            // Move child folders to root
+            for childFolderId in childFolderIds {
+                moveFolder(folderId: childFolderId, newParentId: nil) // Assume moveFolder saves itself
+            }
+            // Move child sessions to root
+            for childSessionId in childSessionIds {
+                moveSessionToFolder(sessionId: childSessionId, newParentId: nil) // Assume moveSessionToFolder saves itself
+            }
+        }
+        
+        saveFolders() // Save folder list changes
+        // Note: Child operations should handle their own saves
+    }
+
+    /// Moves a session to a different folder (or root if newParentId is nil).
+    func moveSessionToFolder(sessionId: UUID, newParentId: UUID?) {
+        guard let sessionIndex = chatSessions.firstIndex(where: { $0.id == sessionId }) else { return }
+        // Allow moving to root (nil) or an existing folder
+        if newParentId != nil && !folders.contains(where: { $0.id == newParentId }) {
+            print("DataManager Error: Target folder ID \(newParentId!) not found.")
+            return
+        }
+        chatSessions[sessionIndex].folderId = newParentId
+        saveSessions()
+        print("DataManager: Moved session \(sessionId) to folder \(newParentId?.uuidString ?? "Root")")
+    }
+    
+    /// Moves a folder (and its contents implicitly) to a different parent folder (or root).
+    func moveFolder(folderId: UUID, newParentId: UUID?) {
+        guard let folderIndex = folders.firstIndex(where: { $0.id == folderId }) else { return }
+        // Prevent moving a folder into itself or one of its own descendants (basic check)
+        if folderId == newParentId { return } 
+        // TODO: Add check for descendant move?
+        
+        // Allow moving to root (nil) or an existing folder
+        if newParentId != nil && !folders.contains(where: { $0.id == newParentId }) {
+            print("DataManager Error: Target parent folder ID \(newParentId!) not found.")
+            return
+        }
+        folders[folderIndex].parentId = newParentId
+        saveFolders()
+        print("DataManager: Moved folder \(folderId) to parent \(newParentId?.uuidString ?? "Root")")
+    }
+
+    /// Updates the color hex string for a specific folder.
+    func updateFolderColor(withId id: UUID, colorHex: String?) {
+        guard let index = folders.firstIndex(where: { $0.id == id }) else { return }
+        // Create a mutable copy of the struct
+        var folderToUpdate = folders[index]
+        // Update the property on the copy
+        folderToUpdate.colorHex = colorHex
+        // Replace the item in the array with the updated copy
+        folders[index] = folderToUpdate
+        // No need for objectWillChange.send() as the array itself is modified
+        saveFolders()
+        print("DataManager: Updated color for folder \(id) to \(colorHex ?? "None")")
+    }
 }
 
 // Remove duplicate struct definitions from here
