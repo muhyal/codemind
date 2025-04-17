@@ -50,18 +50,25 @@ class DataManager: ObservableObject {
         saveSessions() // Save after creating
     }
 
-    // Adds a new entry (question/answer) to the currently active session
-    func addEntryToActiveSession(question: String, answer: String) {
+    // Adds a new entry (question/answer/metadata) to the currently active session
+    func addEntryToActiveSession(question: String, generationResult: GenerationResult) {
         guard let index = activeSessionIndex else {
             print("DataManager Error: Cannot add entry, no active session selected.")
-            // Or potentially create a new session here?
-            // createNewSession(activate: true)
-            // guard let newIndex = activeSessionIndex else { return }
-            // index = newIndex
             return
         }
 
-        let newEntry = ChatEntry(question: question, answer: answer)
+        let newEntry = ChatEntry(
+            question: question, 
+            answer: generationResult.text, 
+            wordCount: generationResult.wordCount,
+            promptTokenCount: generationResult.promptTokenCount,
+            candidatesTokenCount: generationResult.candidatesTokenCount,
+            totalTokenCount: generationResult.totalTokenCount,
+            responseTimeMs: generationResult.responseTimeMs,
+            modelName: generationResult.modelName
+            // timestamp will default to Date()
+        )
+        
         chatSessions[index].entries.append(newEntry)
 
         // Update session title if it's the first entry and using default title
@@ -85,6 +92,55 @@ class DataManager: ObservableObject {
             activeSessionId = chatSessions.first?.id
             print("DataManager: Active session deleted. New active session: \(activeSessionId?.uuidString ?? "None")")
         }
+        saveSessions()
+    }
+
+    // Toggles the favorite status of a session
+    func toggleFavorite(withId id: UUID) {
+        guard let index = chatSessions.firstIndex(where: { $0.id == id }) else { return }
+        
+        // Manually signal that the object is about to change
+        objectWillChange.send()
+        
+        chatSessions[index].isFavorite.toggle()
+        // Optional: Re-sort sessions to keep favorites grouped or at the top?
+        // For now, just save the change.
+        print("DataManager: Toggled favorite for session: \(id). New status: \(chatSessions[index].isFavorite)")
+        saveSessions()
+    }
+    
+    // Updates the title of a session
+    func updateTitle(withId id: UUID, newTitle: String) {
+        guard let index = chatSessions.firstIndex(where: { $0.id == id }) else { return }
+        guard !newTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return } // Don't allow empty titles
+        
+        // Manually signal that the object is about to change
+        objectWillChange.send()
+        
+        chatSessions[index].title = newTitle
+        print("DataManager: Updated title for session: \(id) to '\(newTitle)'")
+        saveSessions()
+    }
+
+    // Deletes a specific entry from the active session
+    func deleteEntry(entryId: UUID) {
+        guard let sessionIndex = activeSessionIndex else {
+            print("DataManager Error: Cannot delete entry, no active session selected.")
+            return
+        }
+        
+        guard let entryIndex = chatSessions[sessionIndex].entries.firstIndex(where: { $0.id == entryId }) else {
+             print("DataManager Error: Cannot find entry with ID \(entryId) in session \(activeSessionId?.uuidString ?? "None")")
+             return
+        }
+        
+        // Manually signal that the object is about to change
+        objectWillChange.send()
+        
+        let deletedEntry = chatSessions[sessionIndex].entries.remove(at: entryIndex)
+        print("DataManager: Deleted entry \(deletedEntry.id) from session \(activeSessionId?.uuidString ?? "None")")
+        
+        // Save changes
         saveSessions()
     }
 

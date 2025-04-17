@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		88691E842DB12A3900F3A04F /* GoogleGenerativeAI in Frameworks */ = {isa = PBXBuildFile; productRef = 88691E832DB12A3900F3A04F /* GoogleGenerativeAI */; };
+		889A2E482DB148C600C93CA0 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 889A2E472DB148C600C93CA0 /* MarkdownUI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,6 +58,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				88691E842DB12A3900F3A04F /* GoogleGenerativeAI in Frameworks */,
+				889A2E482DB148C600C93CA0 /* MarkdownUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -118,6 +120,7 @@
 			name = codemind;
 			packageProductDependencies = (
 				88691E832DB12A3900F3A04F /* GoogleGenerativeAI */,
+				889A2E472DB148C600C93CA0 /* MarkdownUI */,
 			);
 			productName = codemind;
 			productReference = 88691E3E2DB1287300F3A04F /* codemind.app */;
@@ -203,6 +206,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				88691E822DB12A3900F3A04F /* XCRemoteSwiftPackageReference "generative-ai-swift" */,
+				889A2E462DB148C600C93CA0 /* XCRemoteSwiftPackageReference "MarkdownUI" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 88691E3F2DB1287300F3A04F /* Products */;
@@ -397,8 +401,8 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = codemind/codemind.entitlements;
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_ENTITLEMENTS = codemind/codemindDebug.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 100;
 				DEVELOPMENT_ASSET_PATHS = "\"codemind/Preview Content\"";
@@ -440,7 +444,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = codemind/codemind.entitlements;
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 100;
 				DEVELOPMENT_ASSET_PATHS = "\"codemind/Preview Content\"";
@@ -616,6 +620,14 @@
 				minimumVersion = 0.5.6;
 			};
 		};
+		889A2E462DB148C600C93CA0 /* XCRemoteSwiftPackageReference "MarkdownUI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/gonzalezreal/MarkdownUI.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.4.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -623,6 +635,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 88691E822DB12A3900F3A04F /* XCRemoteSwiftPackageReference "generative-ai-swift" */;
 			productName = GoogleGenerativeAI;
+		};
+		889A2E472DB148C600C93CA0 /* MarkdownUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 889A2E462DB148C600C93CA0 /* XCRemoteSwiftPackageReference "MarkdownUI" */;
+			productName = MarkdownUI;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

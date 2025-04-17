@@ -6,14 +6,16 @@ struct ChatSession: Codable, Identifiable, Equatable {
     var title: String           // Title of the chat (e.g., first user question)
     let createdAt: Date         // When the session was started
     var entries: [ChatEntry]    // The actual question-answer pairs in this session
+    var isFavorite: Bool = false // Favorite status
 
     // Initializer
-    init(id: UUID = UUID(), title: String? = nil, createdAt: Date = Date(), entries: [ChatEntry] = []) {
+    init(id: UUID = UUID(), title: String? = nil, createdAt: Date = Date(), entries: [ChatEntry] = [], isFavorite: Bool = false) {
         self.id = id
         // If no title is provided, use a placeholder or generate later
         self.title = title ?? "New Chat \(DateFormatter.shortDateTime.string(from: createdAt))"
         self.createdAt = createdAt
         self.entries = entries
+        self.isFavorite = isFavorite
     }
 
     // Helper to get a short preview of the first question for the title

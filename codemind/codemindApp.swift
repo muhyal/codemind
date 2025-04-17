@@ -18,6 +18,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // State to track modal visibility
     private var isModalVisible = false
+    
+    // Variables to track Option key presses
+    private var optionKeyPressCount = 0
+    private var lastOptionKeyPressTime: TimeInterval = 0
+    private let keyIntervalThreshold: TimeInterval = 0.5 // Seconds between presses (reduced for quicker double press)
+    private var previousModifierFlags: NSEvent.ModifierFlags? // To track changes
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         print("AppDelegate: applicationDidFinishLaunching")
@@ -60,27 +66,57 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Function to setup the global keyboard shortcut monitor
     func setupGlobalMonitor() {
-        print("AppDelegate: Setting up global monitor...")
-        // Register the global keyboard shortcut (Cmd + Shift + 0)
-        // KeyCode 29 corresponds to '0'
-        NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in // Use weak self
-            // print("AppDelegate: Global KeyDown Event Detected - keyCode: \(event.keyCode), flags: \(event.modifierFlags)")
-            // Check for modifier keys AND the specific key code inside the handler
-            if event.modifierFlags.contains([.command, .shift]) && event.keyCode == 29 { // Check for keyCode 29 (0 key)
-                print("AppDelegate: Shortcut Cmd+Shift+0 DETECTED!")
-                // Ensure UI updates happen on the main thread
-                DispatchQueue.main.async {
-                    print("AppDelegate: Calling toggleModal() on main thread.")
-                    self?.toggleModal() // Use self?
+        print("AppDelegate: Setting up global monitor for double Option key press...")
+        // Register the global keyboard monitor for modifier key changes
+        NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            guard let self = self else { return }
+            
+            let currentFlags = event.modifierFlags
+            let previousFlags = self.previousModifierFlags ?? NSEvent.ModifierFlags() // Handle initial nil case
+
+            // Check if Option key was just pressed (was not pressed before, but is now)
+            if !previousFlags.contains(.option) && currentFlags.contains(.option) {
+                 // print("Option key pressed down.") // Debugging
+                 let currentTime = Date().timeIntervalSince1970
+                
+                // Check if the time interval since the last press is within the threshold
+                if (currentTime - self.lastOptionKeyPressTime) < self.keyIntervalThreshold {
+                    self.optionKeyPressCount += 1
+                } else {
+                    // Reset count if interval is too long
+                    self.optionKeyPressCount = 1
                 }
-            } /*else {
-                // Optional: Log if the key was 0 but modifiers didn't match
-                 if event.keyCode == 29 {
-                     print("AppDelegate: 0 key pressed, but modifiers didn't match Cmd+Shift.")
+                
+                // Update the last press time
+                self.lastOptionKeyPressTime = currentTime
+                
+                // Check if the count reached 2
+                if self.optionKeyPressCount == 2 {
+                    print("AppDelegate: Double Option Key DETECTED!")
+                    // Reset the count
+                    self.optionKeyPressCount = 0
+                    self.lastOptionKeyPressTime = 0 
+                    
+                    // Ensure UI updates happen on the main thread
+                    DispatchQueue.main.async {
+                        print("AppDelegate: Calling toggleModal() on main thread.")
+                        self.toggleModal()
+                    }
                  }
-            }*/
+                 // print("Option press detected. Count: \(self.optionKeyPressCount)") // Debugging
+            } else if previousFlags.contains(.option) && !currentFlags.contains(.option) {
+                // print("Option key released.") // Debugging - Option key was released, do nothing for count
+            } else if !currentFlags.contains(.option) {
+                 // If Option is not pressed and wasn't just released, reset count after a delay?
+                 // Or maybe reset immediately if another non-modifier key is pressed?
+                 // For simplicity, we'll just rely on the time threshold.
+                 // If too much time passes, the count resets anyway on the next press.
+            }
+            
+            // Store current flags for the next event
+            self.previousModifierFlags = currentFlags
         }
-        print("AppDelegate: Global monitor setup complete.")
+        print("AppDelegate: Global monitor setup complete for flagsChanged.")
     }
 
     // Function to toggle the modal window's visibility
