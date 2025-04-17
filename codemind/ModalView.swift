@@ -2,6 +2,33 @@ import SwiftUI
 import GoogleGenerativeAI
 import MarkdownUI
 
+// Define roles for messages
+enum ChatRole {
+    case user
+    case model
+}
+
+// Structure to represent a single message in the display list
+struct DisplayMessage: Identifiable {
+    let id: UUID // Unique ID for the list row itself (can combine entryId + role)
+    let entryId: UUID // Original ChatEntry ID
+    let role: ChatRole
+    let content: String
+    let timestamp: Date
+    // Include metadata only for model messages
+    let metadata: ChatEntryMetadata?
+}
+
+// Separate struct for metadata to avoid passing too many optionals
+struct ChatEntryMetadata {
+    let wordCount: Int?
+    let promptTokenCount: Int?
+    let candidatesTokenCount: Int?
+    let totalTokenCount: Int?
+    let responseTimeMs: Int?
+    let modelName: String?
+}
+
 struct ModalView: View {
     // Use @StateObject for the DataManager
     @StateObject private var dataManager = DataManager()
@@ -64,7 +91,47 @@ struct ModalView: View {
         .environmentObject(dataManager)
     }
 
-    // MARK: - Computed Views
+    // MARK: - Computed Properties
+    
+    /// Transforms ChatEntries into a list of individual messages for display.
+    private var displayMessages: [DisplayMessage] {
+        dataManager.activeSessionEntries.flatMap { entry -> [DisplayMessage] in
+            var messages: [DisplayMessage] = []
+            // Add user message
+            if !entry.question.isEmpty {
+                messages.append(DisplayMessage(
+                    id: UUID(), // Generate unique ID for this row
+                    entryId: entry.id,
+                    role: .user,
+                    content: entry.question,
+                    timestamp: entry.timestamp, // Use entry timestamp for ordering
+                    metadata: nil
+                ))
+            }
+            // Add model message
+            if !entry.answer.isEmpty {
+                let metadata = ChatEntryMetadata(
+                    wordCount: entry.wordCount,
+                    promptTokenCount: entry.promptTokenCount,
+                    candidatesTokenCount: entry.candidatesTokenCount,
+                    totalTokenCount: entry.totalTokenCount,
+                    responseTimeMs: entry.responseTimeMs,
+                    modelName: entry.modelName
+                )
+                messages.append(DisplayMessage(
+                    id: UUID(), // Generate unique ID for this row
+                    entryId: entry.id,
+                    role: .model,
+                    content: entry.answer,
+                    timestamp: entry.timestamp, // Use entry timestamp for ordering
+                    metadata: metadata
+                ))
+            }
+            return messages
+        }
+        // Ensure messages are sorted chronologically if needed, though flatMap should preserve order from entries
+        // .sorted { $0.timestamp < $1.timestamp } // Usually not needed if entries are ordered
+    }
     
     /// The content view for the sidebar.
     private var sidebarContent: some View {
@@ -172,30 +239,30 @@ struct ModalView: View {
     /// The content view for the detail area (chat interface).
     private var detailContent: some View {
         VStack(spacing: 0) {
-            // Chat Entries List
+            // Chat Entries List - Now iterates over displayMessages
             ScrollViewReader { scrollViewProxy in
-                List(dataManager.activeSessionEntries) { entry in
-                     ChatBubble(entry: entry)
-                         .id(entry.id) // ID for scrolling
-                         // Remove default list padding/margins for tighter bubbles
-                         .listRowInsets(EdgeInsets(top: 4, leading: 10, bottom: 4, trailing: 10))
+                List(displayMessages) { message in // <-- Iterate over DisplayMessage
+                     ChatBubble(message: message) // <-- Pass DisplayMessage to ChatBubble
+                         .id(message.id) // ID for scrolling
+                         .listRowInsets(EdgeInsets()) // Remove insets for full width bubbles
                          .listRowSeparator(.hidden)
                  }
                 .listStyle(.plain)
-                .background(colorScheme == .dark ? Color(.controlBackgroundColor) : Color(.textBackgroundColor)) // Match window background
-                .onChange(of: dataManager.activeSessionEntries.count) { _ in // Scroll on new entry
+                .background(colorScheme == .dark ? Color(.controlBackgroundColor) : Color(.textBackgroundColor))
+                // Adjust scrolling logic if needed based on the new structure
+                .onChange(of: displayMessages.count) { _ in 
                     scrollToBottom(proxy: scrollViewProxy)
                 }
                 .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                       scrollToBottom(proxy: scrollViewProxy)
+                    }
+                }
+                .onChange(of: dataManager.activeSessionId) { _ in
                      DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        scrollToBottom(proxy: scrollViewProxy)
+                         scrollToBottom(proxy: scrollViewProxy)
                      }
-                 }
-                 .onChange(of: dataManager.activeSessionId) { _ in
-                      DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                          scrollToBottom(proxy: scrollViewProxy)
-                      }
-                 }
+                }
             }
 
             // Status/Error Area
@@ -277,8 +344,9 @@ struct ModalView: View {
 
     // Helper function to scroll to the bottom of the chat list
     private func scrollToBottom(proxy: ScrollViewProxy) {
-        guard let lastEntryId = dataManager.activeSessionEntries.last?.id else { return }
-        proxy.scrollTo(lastEntryId, anchor: .bottom)
+        // Now scroll to the last message in the displayMessages array
+        guard let lastMessageId = displayMessages.last?.id else { return }
+        proxy.scrollTo(lastMessageId, anchor: .bottom)
     }
 
     // Function to handle submitting the query to the active session
@@ -357,140 +425,123 @@ struct SessionRow: View {
     }
 }
 
-// Helper View for Chat Bubbles
+// REFACTORED Helper View for Chat Bubbles
 struct ChatBubble: View {
-    let entry: ChatEntry
+    let message: DisplayMessage // <-- Takes DisplayMessage now
     @Environment(\.colorScheme) var colorScheme
-    @EnvironmentObject var dataManager: DataManager // Access DataManager
-    
-    @State private var showRawMarkdown: Bool = false // State to toggle raw view
+    @EnvironmentObject var dataManager: DataManager
+    @State private var showRawMarkdown: Bool = false
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 8) { // Use HStack for avatar + bubble
-            // User Avatar and Bubble
-            if entry.question.isEmpty == false { // Assuming user question is always present
-                 Spacer() // <-- Add Spacer BEFORE to push right
+        HStack(spacing: 0) { // Use 0 spacing, control with padding
+            if message.role == .user {
+                Spacer() // Push user message right
                 
-                 Text(entry.question)
-                     .padding(.horizontal, 12)
-                     .padding(.vertical, 8)
-                     .background(Color.blue)
-                     .foregroundColor(.white)
-                     .cornerRadius(15)
-                     // Ensure the frame allows bubble to grow but aligns content right
-                     .frame(maxWidth: .infinity, alignment: .trailing) 
-                 
-                 Image(systemName: "person.crop.circle.fill")
-                     .font(.title2)
-                     .foregroundColor(.secondary)
-                 // Remove Spacer from the end
+                HStack(alignment: .bottom, spacing: 5) {
+                    Text(message.content)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(15)
+                        .textSelection(.enabled)
+                    
+                    Image(systemName: "person.crop.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.leading, 40) // Ensure bubble doesn't touch left edge
+                .padding(.trailing, 10) // Padding on the right
+                
+            } else { // message.role == .model
+                HStack(alignment: .bottom, spacing: 5) {
+                    Image(systemName: "sparkle")
+                        .font(.title2)
+                        .foregroundColor(.purple)
+                        .padding(.top, 5) // Align slightly lower if needed
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        // ZStack for Bubble and Top-Left Buttons
+                        ZStack(alignment: .topLeading) {
+                            // AI Bubble Content (Markdown or Raw)
+                            Group {
+                                if showRawMarkdown {
+                                    ScrollView {
+                                        Text(message.content)
+                                            .font(.system(.body, design: .monospaced))
+                                            .padding(.all, 10)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .textSelection(.enabled)
+                                    }
+                                    // Consistent background/corner for ScrollView
+                                    .background(colorScheme == .dark ? Color.gray.opacity(0.2) : Color.gray.opacity(0.1))
+                                    .cornerRadius(15)
+                                    
+                                } else {
+                                    Markdown(message.content)
+                                        .textSelection(.enabled)
+                                        .padding(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
+                                        .background(colorScheme == .dark ? Color.gray.opacity(0.4) : Color.gray.opacity(0.15))
+                                        .cornerRadius(15)
+                                        // Remove fixedSize, let ZStack manage width with padding
+                            }
+                        }
+                         // Add padding to the bubble content to avoid buttons overlapping too much text
+                        .padding(.top, 25) // Space for buttons above
+                        .padding(.leading, 5) // Minor leading space
+
+                        // Action buttons (Copy, Delete, Raw/Rendered) in Top-Left
+                        actionButtons
+                            .padding(4) // Padding around the button group
+                            .background(.ultraThinMaterial, in: Capsule()) // Subtle background
+                            .padding([.leading, .top], 6) // Position slightly offset from corner
+                    }
+                }
+                .padding(.trailing, 40) // Ensure bubble doesn't touch right edge
+                .padding(.leading, 10) // Padding on the left
+                
+                Spacer() // Push AI message left
             }
-            
-            // AI Avatar, Bubble, and Actions
-            if entry.answer.isEmpty == false { // Check if there is an AI answer
-                 Image(systemName: "sparkle") // AI Avatar First
-                     .font(.title2)
-                     .foregroundColor(.purple)
-                 
-                 VStack(alignment: .leading) { // Changed to leading for inner content alignment
-                     // HStack containing the AI Bubble and Vertical Buttons
-                     HStack(alignment: .top, spacing: 4) {
-                         // Conditionally display Markdown or Raw Text
-                         if showRawMarkdown {
-                             ScrollView {
-                                 Text(entry.answer)
-                                     .font(.system(.body, design: .monospaced))
-                                     .padding(.all, 10) // Uniform padding
-                                     .background(colorScheme == .dark ? Color.gray.opacity(0.2) : Color.gray.opacity(0.1))
-                                     .foregroundColor(.primary)
-                                     .cornerRadius(15)
-                                     .frame(maxWidth: .infinity, alignment: .leading)
-                                     .textSelection(.enabled)
-                             }
-                         } else {
-                             Markdown(entry.answer)
-                                 // .markdownTheme(.gitHub)
-                                 .textSelection(.enabled)
-                                 .markdownStyle(
-                                      MarkdownStyle(
-                                          padding: EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12)
-                                      )
-                                  )
-                                 .background(colorScheme == .dark ? Color.gray.opacity(0.4) : Color.gray.opacity(0.15))
-                                 .cornerRadius(15)
-                                 // Let the Markdown view determine its width based on content
-                                 .fixedSize(horizontal: false, vertical: true)
-                         }
-                         
-                         // Vertical Buttons VStack
-                         actionButtons // Use helper for buttons
-                            .frame(width: 20) // Give buttons a fixed width
-                     }
-                      // Ensure this HStack itself doesn't expand infinitely
-                     .frame(maxWidth: .infinity, alignment: .leading)
-                     
-                     // Metadata Display (aligned left under AI bubble)
-                     ViewThatFits(in: .horizontal) {
-                         // Wide layout
-                         HStack(spacing: 8) {
-                             if let wc = entry.wordCount { Text("WC: \(wc)") }
-                             if let tc = entry.candidatesTokenCount { Text("TC: \(tc)") }
-                             if let tt = entry.totalTokenCount { Text("Used: \(tt)") }
-                             if let rt = entry.responseTimeMs { Text("Latency: \(rt)ms") }
-                             Text(entry.timestamp, style: .time)
-                             // Buttons removed from here
-                         }
-                         
-                         // Narrow layout
-                         HStack(spacing: 8) {
-                             Text(entry.timestamp, style: .time)
-                             // Buttons removed from here
-                         }
-                     }
-                     .font(.caption2)
-                     .foregroundColor(.secondary)
-                     .padding(.leading, 12) // Indent metadata slightly
-                     .padding(.top, 2)
-                 }
-                 
-                 Spacer() // <-- Add Spacer AFTER to push left
-             }
         }
         .padding(.vertical, 5)
     }
+
+    // Helper for Metadata View (Simplified)
+    @ViewBuilder
+    private func metadataView(metadata: ChatEntryMetadata) -> some View {
+        // Only show Latency and Model
+        HStack(spacing: 8) {
+            if let rt = metadata.responseTimeMs { Text("Latency: \(rt)ms") }
+            if let model = metadata.modelName { Text("Model: \(model)") }
+             // Keep timestamp for context if needed, or remove
+             Text(message.timestamp, style: .time)
+        }
+        .font(.caption2)
+        .foregroundColor(.secondary)
+        .padding(.leading, 0) // Align with bubble start
+        .padding(.top, 2)
+    }
     
-    // Helper computed property for action buttons to avoid repetition
+    // Helper computed property for action buttons (Horizontal layout)
     private var actionButtons: some View {
-        VStack(spacing: 8) { // Keep buttons vertical
+        HStack(spacing: 8) { // <-- Change to HStack
              // Toggle Raw/Rendered Button
-             Button {
-                 showRawMarkdown.toggle()
-             } label: {
-                 Image(systemName: showRawMarkdown ? "doc.richtext.fill" : "doc.plaintext")
-             }
-             .buttonStyle(.plain)
-             .help(showRawMarkdown ? "Rendered - Show Rendered" : "Raw - Show Raw Markdown")
-             
-            // Copy Button
-            Button {
+             Button { showRawMarkdown.toggle() } label: { Image(systemName: showRawMarkdown ? "doc.richtext.fill" : "doc.plaintext") }
+            
+            Button { // Copy
                 let pasteboard = NSPasteboard.general
                 pasteboard.clearContents()
-                pasteboard.setString(entry.answer, forType: .string)
-            } label: {
-                Image(systemName: "doc.on.doc")
-            }
-            .buttonStyle(.plain)
-            .help("Copy - Copy Answer")
+                pasteboard.setString(message.content, forType: .string)
+            } label: { Image(systemName: "doc.on.doc") }
+                .buttonStyle(.plain)
+                .help("Copy - Copy Answer")
             
-            // Delete Button
-            Button {
-                dataManager.deleteEntry(entryId: entry.id)
-            } label: {
-                Image(systemName: "trash")
-            }
-            .buttonStyle(.plain)
-            .foregroundColor(.red)
-            .help("Delete - Delete Entry")
+            Button { // Delete
+                dataManager.deleteEntry(entryId: message.entryId) // Use entryId
+            } label: { Image(systemName: "trash") }
+                .buttonStyle(.plain)
+                .foregroundColor(.red)
+                .help("Delete - Delete Entry")
         }
     }
 }
