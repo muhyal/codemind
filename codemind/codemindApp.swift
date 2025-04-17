@@ -172,11 +172,20 @@ struct codemindApp: App {
     // Inject the App Delegate
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
-    // Use Settings scene to avoid opening a default main window
+    // Use Settings scene to manage the settings window
     var body: some Scene {
         Settings {
-            // Keep this empty as we are managing the window manually
-            EmptyView()
+            // Link the Settings menu item to SettingsView
+            SettingsView()
+        }
+        // Add standard AppKit menu commands
+        .commands {
+            CommandGroup(replacing: .appInfo) {
+                // This will automatically create the "About CodeMind" menu item
+                // based on your app's Info.plist settings.
+            }
+            // Keep other default command groups if needed
+            // CommandGroup(replacing: .newItem) { }
         }
     }
 }

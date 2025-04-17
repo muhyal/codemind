@@ -5,7 +5,6 @@ import MarkdownUI
 // MARK: - Main View
 struct ModalView: View {
     @StateObject private var dataManager = DataManager()
-    @State private var showingSettings: Bool = false
     @State private var showingEditAlert: Bool = false
     @State private var sessionToEdit: ChatSession? = nil
     @State private var newSessionTitle: String = ""
@@ -46,7 +45,6 @@ struct ModalView: View {
         NavigationSplitView {
             SidebarView(
                 selectedFilter: $selectedFilter,
-                showingSettings: $showingSettings,
                 showingEditAlert: $showingEditAlert,
                 sessionToEdit: $sessionToEdit,
                 newSessionTitle: $newSessionTitle
@@ -66,9 +64,6 @@ struct ModalView: View {
         .environmentObject(dataManager)
         .background(.ultraThinMaterial)
         .frame(minWidth: 700, minHeight: 500)
-        .sheet(isPresented: $showingSettings) {
-            SettingsView()
-        }
         .alert("Edit Chat Title", isPresented: $showingEditAlert, presenting: sessionToEdit) { session in
              TextField("Enter new title", text: $newSessionTitle)
              Button("Save") {

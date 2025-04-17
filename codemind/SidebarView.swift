@@ -51,7 +51,7 @@ struct SidebarView: View {
         VStack(spacing: 0) {
             // --- Header ---
             HStack {
-                Text("Chats")
+                Text("🧠 CodeMind Chats")
                     .font(.title2.bold()) // Bolder title
 
                 Spacer()
@@ -65,22 +65,6 @@ struct SidebarView: View {
                     .buttonStyle(.plain)
                     .help("Settings")
                     .contentShape(Rectangle()) // Ensure tappable area
-
-                    Button { setupFolderAlert(action: .newRootFolder) } label: {
-                         Image(systemName: "folder.badge.plus")
-                              .font(.title3)
-                     }
-                    .buttonStyle(.plain)
-                    .help("New Folder")
-                    .contentShape(Rectangle())
-
-                    Button { dataManager.createNewSession(activate: true) } label: {
-                         Image(systemName: "plus.circle.fill")
-                              .font(.title3)
-                     }
-                    .buttonStyle(.plain)
-                    .help("New Chat")
-                    .contentShape(Rectangle())
                 }
             }
             .padding(.horizontal)
@@ -91,13 +75,18 @@ struct SidebarView: View {
 
             // --- Filter Area ---
             HStack(spacing: 15) { // Increase spacing
-                Picker("Filter", selection: $selectedFilter) {
+                Picker("", selection: $selectedFilter) {
                     ForEach(SidebarFilter.allCases) { filter in
-                        Text(filter.rawValue).tag(filter)
+                        switch filter {
+                        case .all:
+                            Image(systemName: "list.bullet").tag(filter).help("All Chats")
+                        case .favorites:
+                            Image(systemName: "star.fill").tag(filter).help("Favorites")
+                        }
                     }
                 }
                 .pickerStyle(.segmented)
-                .frame(maxWidth: 200) // Keep width constraint
+                .frame(maxWidth: 150) // Adjust width for icons
 
                 // Color Filter Menu Button - Improved Look
                 Menu {
@@ -106,13 +95,13 @@ struct SidebarView: View {
                     HStack(spacing: 4) {
                         if let selectedColor = selectedColorHexFilter {
                             Circle().fill(colorFromHex(selectedColor)).frame(width: 12, height: 12) // Slightly larger dot
-                            Text(colorName(from: selectedColor))
+                            Text(colorName(from: selectedColor)) // <-- Re-added color name
                                 .font(.caption)
                                 .lineLimit(1)
                         } else {
                              Image(systemName: "paintpalette")
                                  .imageScale(.small) // Adjust icon size
-                             Text("Color")
+                             Text("Color") // <-- Re-added "Color" text for non-selected state
                                 .font(.caption)
                         }
                     }
@@ -124,7 +113,26 @@ struct SidebarView: View {
                 .menuStyle(.borderlessButton)
                 .frame(width: 85) // Adjust width slightly
 
-                Spacer() // Push filters left
+                Spacer() // Pushes filters and color button left
+                
+                // MOVED New Folder and New Chat buttons here
+                Button { setupFolderAlert(action: .newRootFolder) } label: {
+                     Image(systemName: "folder.badge.plus")
+                          .font(.title3)
+                 }
+                .buttonStyle(.plain)
+                .help("New Folder")
+                .contentShape(Rectangle())
+
+                Button { dataManager.createNewSession(activate: true) } label: {
+                     Image(systemName: "plus.circle.fill")
+                          .font(.title3)
+                 }
+                .buttonStyle(.plain)
+                .help("New Chat")
+                .contentShape(Rectangle())
+
+                // Removed Spacer() from here as buttons are now at the end
             }
             .padding(.horizontal)
             .padding(.vertical, 8) // Add vertical padding
@@ -179,15 +187,22 @@ struct SidebarView: View {
         Divider()
         ForEach(availableColors.compactMap { $0 }, id: \.self) { colorHex in
              Button { selectedColorHexFilter = colorHex } label: {
-                 HStack {
-                     Circle().fill(colorFromHex(colorHex)).frame(width: 12, height: 12)
+                 // Use Label to combine Circle and Text
+                 Label {
                      Text(colorName(from: colorHex))
+                 } icon: {
+                     Circle().fill(colorFromHex(colorHex)).frame(width: 12, height: 12)
+                 }
+                 // Add Checkmark separately if needed, ensuring Spacer pushes it right
+                 HStack {
                      Spacer()
                      if selectedColorHexFilter == colorHex {
                          Image(systemName: "checkmark")
                      }
                  }
              }
+             // Removed the explicit HStack wrapper as Label handles layout, but need to ensure checkmark is positioned
+             // This might require further adjustment if checkmark isn't right-aligned
         }
     }
     
@@ -250,46 +265,51 @@ struct SidebarView: View {
     private func outlineGroupContent(parentId: UUID?, level: Int) -> some View {
         let indent = CGFloat(level * 15) // Indentation amount per level
 
-        // --- Folders ---
-        let allFoldersAtLevel = parentId == nil ? dataManager.rootFolders : dataManager.subfolders(in: parentId!)
-        let foldersToShow = allFoldersAtLevel.filter { folder in
-            (selectedFilter == .favorites) ? dataManager.folderContainsFavorites(folderId: folder.id) : true
-        }
-        
-        ForEach(foldersToShow) { folder in
-            DisclosureGroup {
-                outlineGroupContent(parentId: folder.id, level: level + 1) // Increase level for children
-            } label: {
-                FolderRow(folder: folder, isHovering: hoverId == "folder-\(folder.id.uuidString)")
-                    .padding(.leading, indent) // Apply indentation
-                    .contentShape(Rectangle()) // Make whole row tappable for hover/context menu
+        // Wrap the return type in AnyView to help with type inference
+        AnyView(
+            VStack(alignment: .leading, spacing: 0) {
+                // --- Folders ---
+                let allFoldersAtLevel = parentId == nil ? dataManager.rootFolders : dataManager.subfolders(in: parentId!)
+                let foldersToShow = allFoldersAtLevel.filter { folder in
+                    (selectedFilter == .favorites) ? dataManager.folderContainsFavorites(folderId: folder.id) : true
+                }
+                
+                ForEach(foldersToShow) { folder in
+                    DisclosureGroup {
+                        outlineGroupContent(parentId: folder.id, level: level + 1) // Increase level for children
+                    } label: {
+                        FolderRow(folder: folder, isHovering: hoverId == "folder-\(folder.id.uuidString)")
+                            .padding(.leading, indent) // Apply indentation
+                            .contentShape(Rectangle()) // Make whole row tappable for hover/context menu
+                    }
+                    .accentColor(.secondary) // Change disclosure indicator color
+                    .contextMenu { folderContextMenu(for: folder) }
+                    .onHover { isHovering in hoverId = isHovering ? "folder-\(folder.id.uuidString)" : nil }
+                }
+
+                // --- Sessions ---
+                let currentSessions = parentId == nil ? dataManager.rootSessions : dataManager.sessions(in: parentId!)
+                let sessionsToShow = currentSessions.filter { shouldDisplay(session: $0) }
+
+                ForEach(sessionsToShow) { session in
+                     let sessionIdString = "session-\(session.id.uuidString)"
+                     SessionRow(
+                         session: session,
+                         isSelected: dataManager.activeSessionId == session.id,
+                         isHovering: hoverId == sessionIdString
+                     )
+                         .padding(.leading, indent + 5) // Apply indentation + slight extra for session
+                         .background( // Add background for selection/hover
+                             RoundedRectangle(cornerRadius: 5)
+                                 .fill(dataManager.activeSessionId == session.id ? Color.accentColor.opacity(0.2) : (hoverId == sessionIdString ? Color.gray.opacity(0.1) : Color.clear))
+                         )
+                         .contentShape(Rectangle()) // Make whole row tappable
+                         .contextMenu { sessionContextMenu(for: session) }
+                         .onTapGesture { dataManager.activeSessionId = session.id }
+                         .onHover { isHovering in hoverId = isHovering ? sessionIdString : nil }
+                }
             }
-            .accentColor(.secondary) // Change disclosure indicator color
-            .contextMenu { folderContextMenu(for: folder) }
-            .onHover { isHovering in hoverId = isHovering ? "folder-\(folder.id.uuidString)" : nil }
-        }
-
-        // --- Sessions ---
-        let currentSessions = parentId == nil ? dataManager.rootSessions : dataManager.sessions(in: parentId!)
-        let sessionsToShow = currentSessions.filter { shouldDisplay(session: $0) }
-
-        ForEach(sessionsToShow) { session in
-             let sessionIdString = "session-\(session.id.uuidString)"
-             SessionRow(
-                 session: session,
-                 isSelected: dataManager.activeSessionId == session.id,
-                 isHovering: hoverId == sessionIdString
-             )
-                 .padding(.leading, indent + 5) // Apply indentation + slight extra for session
-                 .background( // Add background for selection/hover
-                     RoundedRectangle(cornerRadius: 5)
-                         .fill(dataManager.activeSessionId == session.id ? Color.accentColor.opacity(0.2) : (hoverId == sessionIdString ? Color.gray.opacity(0.1) : Color.clear))
-                 )
-                 .contentShape(Rectangle()) // Make whole row tappable
-                 .contextMenu { sessionContextMenu(for: session) }
-                 .onTapGesture { dataManager.activeSessionId = session.id }
-                 .onHover { isHovering in hoverId = isHovering ? sessionIdString : nil }
-        }
+        )
     }
     
     // Keep shouldDisplay helper
