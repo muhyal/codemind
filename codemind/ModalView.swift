@@ -33,6 +33,12 @@ struct ChatEntryMetadata {
 enum SidebarFilter: String, CaseIterable, Identifiable {
     case all = "All Chats"
     case favorites = "Favorites"
+    // Add color filters (examples)
+    case red = "Red"
+    case blue = "Blue"
+    case green = "Green"
+    // Add more colors as needed
+
     var id: String { self.rawValue }
 }
 
@@ -54,22 +60,21 @@ struct ModalView: View {
     // Centralized definitions
     var userBubbleGradient: LinearGradient {
         LinearGradient(
-            gradient: Gradient(colors: [Color.blue.opacity(0.8), Color.blue]),
+            gradient: Gradient(colors: [Color.blue.opacity(0.3), Color.blue.opacity(0.4)]),
             startPoint: .topLeading, endPoint: .bottomTrailing
         )
     }
     var aiBubbleGradient: LinearGradient {
         LinearGradient(
-            gradient: Gradient(colors: [Color.purple.opacity(0.6), Color.teal.opacity(0.7)]),
+            gradient: Gradient(colors: [Color.purple.opacity(0.2), Color.teal.opacity(0.3)]),
             startPoint: .topLeading, endPoint: .bottomTrailing
         )
     }
     var aiRawBackground: Color {
-         // Access colorScheme here, ModalView has it
-         colorScheme == .dark ? Color.gray.opacity(0.25) : Color.gray.opacity(0.15)
+         colorScheme == .dark ? Color.gray.opacity(0.1) : Color.gray.opacity(0.05)
     }
-    var userGlowColor: Color = .blue
-    var aiGlowColor: Color = .purple
+    var userGlowColor: Color = .blue.opacity(0.5)
+    var aiGlowColor: Color = .purple.opacity(0.5)
     
     // Move geminiService back to ModalView
     private let geminiService = GeminiService()
@@ -79,7 +84,6 @@ struct ModalView: View {
 
     var body: some View {
         NavigationSplitView {
-            // Use SidebarView component
             SidebarView(
                 selectedFilter: $selectedFilter,
                 showingSettings: $showingSettings,
@@ -88,7 +92,6 @@ struct ModalView: View {
                 newSessionTitle: $newSessionTitle
             )
         } detail: {
-             // Use ChatDetailView component
              ChatDetailView(
                  searchText: $searchText,
                  statusText: $statusText,
@@ -101,8 +104,8 @@ struct ModalView: View {
                  geminiService: self.geminiService
              )
         }
-        .environmentObject(dataManager) // Pass DataManager down
-        .background(.ultraThickMaterial)
+        .environmentObject(dataManager)
+        .background(.ultraThinMaterial)
         .frame(minWidth: 700, minHeight: 500)
         .alert("Edit Chat Title", isPresented: $showingEditAlert, presenting: sessionToEdit) { session in
              TextField("Enter new title", text: $newSessionTitle)
@@ -253,46 +256,67 @@ struct SidebarView: View {
 
     @EnvironmentObject var dataManager: DataManager
 
-    // Computed property for filtered sessions (moved from ModalView)
-    private var filteredSessions: [ChatSession] {
-        switch selectedFilter {
-        case .all:
-            return dataManager.chatSessions
-        case .favorites:
-            return dataManager.chatSessions.filter { $0.isFavorite }
+    // Predefined colors (can be reused for filtering logic)
+    private let availableColors: [String?] = [
+        nil,
+        "#FF3B30", // Red
+        "#FF9500", // Orange
+        "#FFCC00", // Yellow
+        "#34C759", // Green
+        "#007AFF", // Blue
+        "#AF52DE", // Purple
+        "#8E8E93"  // Grey
+    ]
+    
+    // Map filter cases to hex values for easier filtering
+    private func hex(for filter: SidebarFilter) -> String? {
+        switch filter {
+            case .red: return "#FF3B30"
+            case .blue: return "#007AFF"
+            case .green: return "#34C759"
+            // Add mappings for other color filters
+            default: return nil // Not a color filter
         }
     }
 
+    // Computed property for filtered sessions (updated logic)
+    private var filteredSessions: [ChatSession] {
+        let targetColorHex = hex(for: selectedFilter)
+        
+        return dataManager.chatSessions.filter { session in
+            switch selectedFilter {
+            case .all:
+                return true
+            case .favorites:
+                return session.isFavorite
+            // Handle color cases
+            case .red, .blue, .green: // Add other colors here
+                return session.colorHex == targetColorHex
+            }
+        }
+    }
+
+    // Helper to get app version
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "N/A"
+    }
+
     var body: some View {
-            VStack(spacing: 0) {
-                // Header: Title, New Chat, Settings
-                HStack {
-                    Text("Chats")
-                        .font(.title2.weight(.semibold))
-                    Spacer()
-                    Button {
-                        showingSettings = true
-                    } label: {
-                        Image(systemName: "gearshape.fill")
-                            .font(.title3)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Settings")
+        VStack(spacing: 0) {
+            // Header: Title, New Chat, Settings
+            HStack {
+                Text("Chats")
+                    .font(.title2.weight(.semibold))
+                Spacer()
+                Button { showingSettings = true } label: { Image(systemName: "gearshape.fill").font(.title3) }
+                    .buttonStyle(.plain).help("Settings")
+                Button { dataManager.createNewSession(activate: true) } label: { Image(systemName: "plus.circle.fill").font(.title3) }
+                    .buttonStyle(.plain).help("New Chat")
+             }
+            .padding()
 
-                    Button {
-                        dataManager.createNewSession(activate: true)
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title3)
-                    }
-                    .buttonStyle(.plain)
-                    .help("New Chat")
-                }
-                .padding()
-                .background(.ultraThinMaterial) // Add a subtle background to header
-
-            // Filter Picker
-            Picker("Filter", selection: $selectedFilter) {
+            // Filter Picker (now includes colors)
+            Picker("Filter", selection: $selectedFilter) { 
                 ForEach(SidebarFilter.allCases) { filter in
                     Text(filter.rawValue).tag(filter)
                 }
@@ -301,18 +325,28 @@ struct SidebarView: View {
             .padding(.horizontal)
             .padding(.bottom, 5)
 
-                // List of Sessions
+            // List of Sessions
             List(selection: Binding(get: { dataManager.activeSessionId }, set: { newId in
                  DispatchQueue.main.async { dataManager.activeSessionId = newId }
             })) {
-                 sessionRows // Use computed property for rows
-                }
-                .listStyle(.sidebar)
-                 // Add top padding to separate from header
-                 .padding(.top, 5)
+                 sessionRows
             }
-            .navigationSplitViewColumnWidth(min: 200, ideal: 240)
-            .background(.ultraThickMaterial) // Give sidebar a distinct background
+            .listStyle(.sidebar)
+            .background(.clear) 
+            .scrollContentBackground(.hidden) 
+            .padding(.top, 5)
+            
+            Spacer() // Pushes the version info to the bottom
+            
+            // Add App Name and Version Info
+            Text("CodeMind v\(appVersion)")
+                .font(.footnote) // Use footnote size
+                .foregroundColor(.secondary)
+                .padding(.bottom, 8) // Add some padding at the bottom
+                .padding(.horizontal) // Add horizontal padding
+                .frame(maxWidth: .infinity, alignment: .center) // Center align
+        }
+        .navigationSplitViewColumnWidth(min: 200, ideal: 240)
     }
     
     /// Builds the rows for the session list.
@@ -337,6 +371,27 @@ struct SidebarView: View {
                         dataManager.toggleFavorite(withId: session.id)
                     } label: { Label(session.isFavorite ? "Unfavorite" : "Favorite", systemImage: session.isFavorite ? "star.slash.fill" : "star.fill") }
 
+                    // Add Set Color Submenu
+                    Menu {
+                        ForEach(availableColors, id: \.self) { colorHex in
+                            Button {
+                                dataManager.updateSessionColor(withId: session.id, colorHex: colorHex)
+                            } label: {
+                                HStack {
+                                    if let hex = colorHex {
+                                        Circle().fill(colorFromHex(hex)).frame(width: 12, height: 12)
+                                        Text(colorName(from: hex)) // Optional: Display color name
+                                    } else {
+                                        Image(systemName: "circle.slash") // Icon for removing color
+                                        Text("None")
+                                    }
+                                }
+                            }
+                        }
+                    } label: {
+                        Label("Set Color", systemImage: "paintpalette")
+                    }
+
                     Divider()
 
                     Button(role: .destructive) { // Delete Action
@@ -347,6 +402,37 @@ struct SidebarView: View {
         .onDelete { offsets in
             let idsToDelete = offsets.map { filteredSessions[$0].id }
             idsToDelete.forEach { id in dataManager.deleteSession(withId: id) }
+        }
+    }
+    
+    // Helper to convert hex to Color (copied from SessionRow for use in menu)
+    // Ideally, this would be in a shared utility file
+    private func colorFromHex(_ hex: String?) -> Color {
+        guard let hex = hex, hex.hasPrefix("#"), hex.count == 7 else {
+            return Color.gray // Default color if hex is invalid or nil
+        }
+        let scanner = Scanner(string: String(hex.dropFirst()))
+        var rgbValue: UInt64 = 0
+        scanner.scanHexInt64(&rgbValue)
+        
+        let r = Double((rgbValue & 0xFF0000) >> 16) / 255.0
+        let g = Double((rgbValue & 0x00FF00) >> 8) / 255.0
+        let b = Double(rgbValue & 0x0000FF) / 255.0
+        
+        return Color(red: r, green: g, blue: b)
+    }
+    
+    // Optional helper to get a name for a hex color
+    private func colorName(from hex: String) -> String {
+        switch hex {
+            case "#FF3B30": return "Red"
+            case "#FF9500": return "Orange"
+            case "#FFCC00": return "Yellow"
+            case "#34C759": return "Green"
+            case "#007AFF": return "Blue"
+            case "#AF52DE": return "Purple"
+            case "#8E8E93": return "Grey"
+            default: return "Color"
         }
     }
 }
@@ -443,9 +529,7 @@ struct ChatDetailView: View {
                          .listRowSeparator(.hidden)
                  }
                  .listStyle(.plain)
-                 // Remove specific list background, rely on VStack background
-                 // .background(colorScheme == .dark ? Color(.controlBackgroundColor) : Color(.textBackgroundColor))
-                 .background(.clear) // Explicitly clear
+                 .background(.clear)
                  .onChange(of: filteredDisplayMessages.count) { _ in scrollToBottom(proxy: scrollViewProxy) }
                  .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { scrollToBottom(proxy: scrollViewProxy) } }
                  .onChange(of: dataManager.activeSessionId) { _ in DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { scrollToBottom(proxy: scrollViewProxy) } }
@@ -501,9 +585,6 @@ struct ChatDetailView: View {
              .padding()
              .background(.ultraThinMaterial) // Keep this specific background
          }
-         // Apply regularMaterial to the entire VStack background
-         .background(.regularMaterial)
-         // Extend background under the top title/toolbar area
          .ignoresSafeArea(.container, edges: .top)
          .navigationTitle(activeSessionTitle)
          .searchable(text: $searchText, placement: .toolbar)
@@ -566,9 +647,30 @@ struct SessionRow: View {
     let session: ChatSession
     let isSelected: Bool
 
+    // Helper to convert hex to Color (basic implementation)
+    private func colorFromHex(_ hex: String?) -> Color {
+        guard let hex = hex, hex.hasPrefix("#"), hex.count == 7 else {
+            return Color.gray // Default color if hex is invalid or nil
+        }
+        let scanner = Scanner(string: String(hex.dropFirst()))
+        var rgbValue: UInt64 = 0
+        scanner.scanHexInt64(&rgbValue)
+        
+        let r = Double((rgbValue & 0xFF0000) >> 16) / 255.0
+        let g = Double((rgbValue & 0x00FF00) >> 8) / 255.0
+        let b = Double(rgbValue & 0x0000FF) / 255.0
+        
+        return Color(red: r, green: g, blue: b)
+    }
+
     var body: some View {
-        HStack {
-            Image(systemName: "message") // Add an icon
+        HStack(spacing: 8) { // Add spacing for the color dot
+            // Add Color Dot
+            Circle()
+                .fill(colorFromHex(session.colorHex).opacity(session.colorHex == nil ? 0.3 : 1.0)) // Use helper, make default grey semi-transparent
+                .frame(width: 8, height: 8)
+            
+            Image(systemName: "message")
                 .foregroundColor(isSelected ? .primary : .secondary)
             VStack(alignment: .leading) {
                 Text(session.title)
@@ -581,9 +683,6 @@ struct SessionRow: View {
             Spacer()
         }
         .padding(.vertical, 4)
-        // Subtle background highlight for selection
-        // .background(isSelected ? Color.accentColor.opacity(0.1) : Color.clear)
-        // .cornerRadius(5) // Optional: rounded corners for background
     }
 }
 

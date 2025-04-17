@@ -1,6 +1,25 @@
 import Foundation
 import Combine // Needed for ObservableObject
 import SwiftUI // Needed for Binding
+import GoogleGenerativeAI
+
+// MARK: - Data Structures
+
+// Remove duplicate struct definition from here
+/*
+struct ChatSession: Identifiable, Codable, Equatable {
+    var id: UUID
+    var title: String
+    var createdAt: Date
+    var entries: [ChatEntry] = []
+    var isFavorite: Bool = false
+    var colorHex: String?
+
+    init(...) { ... }
+}
+*/
+
+// MARK: - Data Manager Class
 
 // Manages multiple chat sessions
 class DataManager: ObservableObject {
@@ -24,18 +43,18 @@ class DataManager: ObservableObject {
 
     init() {
         loadSessions()
-        // If no sessions were loaded, create an initial one
-        if chatSessions.isEmpty {
-            print("DataManager: No sessions found, creating initial session.")
-            createNewSession(activate: true)
+        // Ensure active session is valid on init
+        if let lastActiveId = UserDefaults.standard.string(forKey: "activeSessionId"),
+           let uuid = UUID(uuidString: lastActiveId),
+           chatSessions.contains(where: { $0.id == uuid }) {
+            activeSessionId = uuid
         } else {
-            // If sessions exist but no active ID is set (e.g., first load after update),
-            // activate the most recent one.
-            if activeSessionId == nil {
-                print("DataManager: Activating the most recent session.")
+            // If no valid last active session, create a new one or select the first
+            if chatSessions.isEmpty {
+                createNewSession(activate: true)
+            } else {
                 activeSessionId = chatSessions.first?.id
             }
-            print("DataManager: Initialized with \(chatSessions.count) sessions. Active ID: \(activeSessionId?.uuidString ?? "None")")
         }
     }
 
@@ -202,6 +221,13 @@ class DataManager: ObservableObject {
         }
     }
 
+    /// Updates the color hex string for a specific session.
+    func updateSessionColor(withId id: UUID, colorHex: String?) {
+        guard let index = chatSessions.firstIndex(where: { $0.id == id }) else { return }
+        chatSessions[index].colorHex = colorHex
+        saveSessions()
+    }
+
     // Optional: Provides a binding to the active session's entries
     // This might be useful in the View, though accessing activeSessionEntries might be enough
     //    func activeSessionEntriesBinding() -> Binding<[ChatEntry]> {
@@ -214,4 +240,15 @@ class DataManager: ObservableObject {
     //            }\n
     //        )\n
     //    }
-} 
+}
+
+// Remove duplicate struct definitions from here
+/*
+struct ChatEntry: Identifiable, Codable, Equatable {
+    // ... ChatEntry definition ...
+}
+
+struct GenerationResult { 
+    // ... GenerationResult definition ...
+}
+*/ 
