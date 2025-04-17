@@ -210,7 +210,13 @@ struct ModalView: View {
         pasteboard.clearContents()
         pasteboard.setString(formattedText, forType: .string)
         statusText = "Chat copied to clipboard."
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { statusText = "" }
+        // Use Task.sleep for timed dismissal
+        Task {
+            try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+            await MainActor.run { // Ensure UI update is on main thread
+                 statusText = ""
+            }
+        }
     }
 }
 

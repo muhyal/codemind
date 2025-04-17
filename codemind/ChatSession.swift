@@ -19,7 +19,7 @@ struct ChatSession: Identifiable, Codable, Equatable {
     init(id: UUID = UUID(), title: String? = nil, createdAt: Date = Date(), entries: [ChatEntry] = [], isFavorite: Bool = false, colorHex: String? = nil, folderId: UUID? = nil) {
         self.id = id
         // If no title is provided, use a placeholder or generate later
-        self.title = title ?? "Chat \(DateFormatter.localizedString(from: createdAt, dateStyle: .short, timeStyle: .short))"
+        self.title = title ?? "Chat \(DateFormatter.shortDateTime.string(from: createdAt))"
         self.createdAt = createdAt
         self.entries = entries
         self.isFavorite = isFavorite

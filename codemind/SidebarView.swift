@@ -3,7 +3,6 @@ import SwiftUI
 // MARK: - Sidebar Component
 struct SidebarView: View {
     @Binding var selectedFilter: SidebarFilter // Use the simplified enum
-    @Binding var showingSettings: Bool
     @Binding var showingEditAlert: Bool // For triggering alert in ModalView
     @Binding var sessionToEdit: ChatSession? // For triggering alert in ModalView
     @Binding var newSessionTitle: String // For triggering alert in ModalView
@@ -34,6 +33,7 @@ struct SidebarView: View {
 
     @EnvironmentObject var dataManager: DataManager
     @Environment(\.colorScheme) var colorScheme // Get color scheme
+    @Environment(\.openSettings) var openSettings // <-- ADDED for standard settings window
 
     // Predefined colors (Used internally by Sidebar)
     private let availableColors: [String?] = [
@@ -58,7 +58,7 @@ struct SidebarView: View {
 
                 // Group buttons for better spacing control if needed
                 HStack(spacing: 15) { // Increase spacing
-                    Button { showingSettings = true } label: {
+                    Button { openSettings() } label: {
                          Image(systemName: "gearshape.fill")
                              .font(.title3) // Consistent font size
                      }
@@ -265,51 +265,48 @@ struct SidebarView: View {
     private func outlineGroupContent(parentId: UUID?, level: Int) -> some View {
         let indent = CGFloat(level * 15) // Indentation amount per level
 
-        // Wrap the return type in AnyView to help with type inference
-        AnyView(
-            VStack(alignment: .leading, spacing: 0) {
-                // --- Folders ---
-                let allFoldersAtLevel = parentId == nil ? dataManager.rootFolders : dataManager.subfolders(in: parentId!)
-                let foldersToShow = allFoldersAtLevel.filter { folder in
-                    (selectedFilter == .favorites) ? dataManager.folderContainsFavorites(folderId: folder.id) : true
-                }
-                
-                ForEach(foldersToShow) { folder in
-                    DisclosureGroup {
-                        outlineGroupContent(parentId: folder.id, level: level + 1) // Increase level for children
-                    } label: {
-                        FolderRow(folder: folder, isHovering: hoverId == "folder-\(folder.id.uuidString)")
-                            .padding(.leading, indent) // Apply indentation
-                            .contentShape(Rectangle()) // Make whole row tappable for hover/context menu
-                    }
-                    .accentColor(.secondary) // Change disclosure indicator color
-                    .contextMenu { folderContextMenu(for: folder) }
-                    .onHover { isHovering in hoverId = isHovering ? "folder-\(folder.id.uuidString)" : nil }
-                }
-
-                // --- Sessions ---
-                let currentSessions = parentId == nil ? dataManager.rootSessions : dataManager.sessions(in: parentId!)
-                let sessionsToShow = currentSessions.filter { shouldDisplay(session: $0) }
-
-                ForEach(sessionsToShow) { session in
-                     let sessionIdString = "session-\(session.id.uuidString)"
-                     SessionRow(
-                         session: session,
-                         isSelected: dataManager.activeSessionId == session.id,
-                         isHovering: hoverId == sessionIdString
-                     )
-                         .padding(.leading, indent + 5) // Apply indentation + slight extra for session
-                         .background( // Add background for selection/hover
-                             RoundedRectangle(cornerRadius: 5)
-                                 .fill(dataManager.activeSessionId == session.id ? Color.accentColor.opacity(0.2) : (hoverId == sessionIdString ? Color.gray.opacity(0.1) : Color.clear))
-                         )
-                         .contentShape(Rectangle()) // Make whole row tappable
-                         .contextMenu { sessionContextMenu(for: session) }
-                         .onTapGesture { dataManager.activeSessionId = session.id }
-                         .onHover { isHovering in hoverId = isHovering ? sessionIdString : nil }
-                }
+        VStack(alignment: .leading, spacing: 0) {
+            // --- Folders ---
+            let allFoldersAtLevel = parentId == nil ? dataManager.rootFolders : dataManager.subfolders(in: parentId!)
+            let foldersToShow = allFoldersAtLevel.filter { folder in
+                (selectedFilter == .favorites) ? dataManager.folderContainsFavorites(folderId: folder.id) : true
             }
-        )
+            
+            ForEach(foldersToShow) { folder in
+                DisclosureGroup {
+                    outlineGroupContent(parentId: folder.id, level: level + 1) // Increase level for children
+                } label: {
+                    FolderRow(folder: folder, isHovering: hoverId == "folder-\(folder.id.uuidString)")
+                        .padding(.leading, indent) // Apply indentation
+                        .contentShape(Rectangle()) // Make whole row tappable for hover/context menu
+                }
+                .accentColor(.secondary) // Change disclosure indicator color
+                .contextMenu { folderContextMenu(for: folder) }
+                .onHover { isHovering in hoverId = isHovering ? "folder-\(folder.id.uuidString)" : nil }
+            }
+
+            // --- Sessions ---
+            let currentSessions = parentId == nil ? dataManager.rootSessions : dataManager.sessions(in: parentId!)
+            let sessionsToShow = currentSessions.filter { shouldDisplay(session: $0) }
+
+            ForEach(sessionsToShow) { session in
+                 let sessionIdString = "session-\(session.id.uuidString)"
+                 SessionRow(
+                     session: session,
+                     isSelected: dataManager.activeSessionId == session.id,
+                     isHovering: hoverId == sessionIdString
+                 )
+                     .padding(.leading, indent + 5) // Apply indentation + slight extra for session
+                     .background( // Add background for selection/hover
+                         RoundedRectangle(cornerRadius: 5)
+                             .fill(dataManager.activeSessionId == session.id ? Color.accentColor.opacity(0.2) : (hoverId == sessionIdString ? Color.gray.opacity(0.1) : Color.clear))
+                     )
+                     .contentShape(Rectangle()) // Make whole row tappable
+                     .contextMenu { sessionContextMenu(for: session) }
+                     .onTapGesture { dataManager.activeSessionId = session.id }
+                     .onHover { isHovering in hoverId = isHovering ? sessionIdString : nil }
+            }
+        }
     }
     
     // Keep shouldDisplay helper
@@ -332,7 +329,7 @@ struct SidebarView: View {
         
         Menu { // Move To Folder
             Button {
-                Task { await MainActor.run { dataManager.moveSessionToFolder(sessionId: session.id, newParentId: nil as UUID?) } }
+                Task { await MainActor.run { dataManager.moveSessionToFolder(sessionId: session.id, newParentId: nil) } }
             } label: {
                 Label("Root Level", systemImage: session.folderId == nil ? "checkmark.circle.fill" : "circle")
             }
@@ -375,7 +372,7 @@ struct SidebarView: View {
         Menu {
             // Option to move to Root
             Button {
-                Task { await MainActor.run { dataManager.moveFolder(folderId: folder.id, newParentId: nil as UUID?) } }
+                Task { await MainActor.run { dataManager.moveFolder(folderId: folder.id, newParentId: nil) } }
             } label: {
                 Label("Root Level", systemImage: folder.parentId == nil ? "checkmark.circle.fill" : "circle")
             }

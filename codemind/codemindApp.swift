@@ -15,6 +15,7 @@ import ApplicationServices
 class AppDelegate: NSObject, NSApplicationDelegate {
     var modalWindow: NSWindow?
     var modalHostingController: NSHostingController<ModalView>? // Controller for the SwiftUI view
+    var statusItem: NSStatusItem? // <-- ADDED Status Item variable
 
     // State to track modal visibility
     private var isModalVisible = false
@@ -38,8 +39,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // Optional: Show an alert to the user if there was a UI context to do so.
         }
 
-        // Ensure the app can become active even without a main window initially
-        NSApp.setActivationPolicy(.accessory)
+        // Ensure the app can become active and appear in the Dock
+        NSApp.setActivationPolicy(.regular) // <-- CHANGED to .regular
+
+        // Create the status bar item
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        if let button = statusItem?.button {
+            button.image = NSImage(systemSymbolName: "brain.head.profile", accessibilityDescription: "CodeMind") // Set icon
+            button.action = #selector(statusItemClicked(_:))
+            button.target = self
+            print("AppDelegate: Status item created and configured.")
+        } else {
+            print("AppDelegate Error: Unable to create status bar button.")
+        }
     }
 
     // Function to check accessibility permissions and prompt user if needed
@@ -119,6 +131,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         print("AppDelegate: Global monitor setup complete for flagsChanged.")
     }
 
+    // Action called when the status item is clicked
+    @objc func statusItemClicked(_ sender: Any?) {
+        print("AppDelegate: Status item clicked.")
+        // Toggle the main modal window
+        toggleModal()
+    }
+
     // Function to toggle the modal window's visibility
     func toggleModal() {
         isModalVisible.toggle()
@@ -154,6 +173,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             modalWindow?.orderOut(nil)
         }
     }
+
+    // Delegate method called when the app is reactivated (e.g., clicking Dock icon)
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        print("AppDelegate: applicationShouldHandleReopen called. Has visible windows: \(flag)")
+        if !flag {
+            // If there are no visible windows, show the main modal window
+            DispatchQueue.main.async {
+                // Ensure toggleModal is called on the main thread
+                // Only toggle if it's not already visible (to avoid hiding it)
+                if !self.isModalVisible {
+                    self.toggleModal()
+                }
+                // If it IS visible, just bring it to front (toggleModal already does this)
+                else {
+                    self.modalWindow?.makeKeyAndOrderFront(nil)
+                    NSApp.activate(ignoringOtherApps: true)
+                }
+            }
+        }
+        // Return true to indicate we've handled it
+        return true 
+    }
 }
 
 // Extend AppDelegate to handle window closing
@@ -176,13 +217,17 @@ struct codemindApp: App {
     var body: some Scene {
         Settings {
             // Link the Settings menu item to SettingsView
+            // Add a frame to suggest a reasonable initial size for the settings window
             SettingsView()
+                .frame(minWidth: 450, minHeight: 300) // Adjust size as needed
         }
         // Add standard AppKit menu commands
         .commands {
             CommandGroup(replacing: .appInfo) {
-                // This will automatically create the "About CodeMind" menu item
-                // based on your app's Info.plist settings.
+                // Explicitly add the About button action
+                Button("About CodeMind") {
+                    NSApplication.shared.orderFrontStandardAboutPanel(nil)
+                }
             }
             // Keep other default command groups if needed
             // CommandGroup(replacing: .newItem) { }

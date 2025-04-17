@@ -102,6 +102,7 @@ struct ChatDetailView: View {
                  }
                  .listStyle(.plain)
                  .background(.clear)
+                 .id(dataManager.activeSessionId)
                  .onChange(of: filteredDisplayMessages.last?.id) { newLastId in
                      if let id = newLastId {
                          scrollToBottom(proxy: scrollViewProxy, id: id)

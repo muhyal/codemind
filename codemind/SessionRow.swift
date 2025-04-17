@@ -6,6 +6,14 @@ struct SessionRow: View {
     let isSelected: Bool
     let isHovering: Bool // Add hover state
 
+    // Date Formatter for short date and time
+    private var dateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        return formatter
+    }
+
     var body: some View {
         HStack(spacing: 8) {
             // Use message icon, color based on selection/hover
@@ -23,7 +31,7 @@ struct SessionRow: View {
                 
                 // Optionally show timestamp or a snippet of last message?
                 // Keeping timestamp for now
-                Text(session.createdAt, style: .relative)
+                Text(session.createdAt, formatter: dateFormatter)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

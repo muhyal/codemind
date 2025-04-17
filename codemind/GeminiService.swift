@@ -1,96 +1,114 @@
 import Foundation
 import GoogleGenerativeAI
 
-// Define potential errors for the Gemini service
+/// `GeminiService` tarafından fırlatılabilecek olası hataları tanımlar.
 enum GeminiError: Error, LocalizedError {
     case apiKeyMissing
     case modelInitializationFailed(Error)
     case contentGenerationFailed(Error)
     case invalidResponse
 
+    /// Kullanıcıya gösterilecek hata açıklaması.
     var errorDescription: String? {
         switch self {
         case .apiKeyMissing:
-            return "API Key is missing. Please add it in settings."
+            return "API Anahtarı eksik. Lütfen ayarlardan ekleyin."
         case .modelInitializationFailed(let underlyingError):
-            return "Failed to initialize the AI model: \(underlyingError.localizedDescription)"
+            return "AI modeli başlatılamadı: \(underlyingError.localizedDescription)"
         case .contentGenerationFailed(let underlyingError):
-            return "Failed to generate content: \(underlyingError.localizedDescription)"
+            return "İçerik üretilemedi: \(underlyingError.localizedDescription)"
         case .invalidResponse:
-            return "Received an invalid response from the API."
+            return "API'den geçersiz bir yanıt alındı."
         }
     }
 }
 
-// Define a struct to hold the generation result including metadata
+/// Üretim sonucunu ve ilgili meta verileri içeren struct.
 struct GenerationResult {
+    /// Üretilen metin.
     let text: String
+    /// Metindeki kelime sayısı.
     let wordCount: Int
+    /// İstek (prompt) için kullanılan token sayısı.
     let promptTokenCount: Int?
+    /// Yanıt adayları (candidates) için kullanılan token sayısı.
     let candidatesTokenCount: Int?
+    /// Toplam kullanılan token sayısı.
     let totalTokenCount: Int?
+    /// Yanıtın milisaniye cinsinden süresi.
     let responseTimeMs: Int
+    /// Kullanılan modelin adı.
     let modelName: String
 }
 
+/// Gemini API ile etkileşim kurmak için servis struct'ı.
 struct GeminiService {
     
-    private let modelName = "gemini-2.0-flash" // Keep model name consistent
+    // TODO: Model adını dinamik veya yapılandırılabilir hale getirmeyi düşünün.
+    private let modelName = "gemini-2.0-flash" // Model adını burada güncelleyebilirsiniz.
 
-    // Function to generate response from Gemini API
-    // Takes the conversation history and the latest prompt as input
-    // Returns a Result type: either the GenerationResult or an error (GeminiError)
+    /// Gemini API'den yanıt üretir.
+    /// - Parameters:
+    ///   - history: Konuşma geçmişi. `[ModelContent]` dizisi.
+    ///   - latestPrompt: Kullanıcının gönderdiği son mesaj.
+    ///   - apiKey: Gemini API anahtarı.
+    ///     *Not: Daha güvenli uygulamalar için API anahtarını her çağrıda geçmek yerine
+    ///     servis başlatılırken veya güvenli bir depodan (örn. Keychain) almak daha iyidir.*
+    /// - Returns: Başarılı olursa `GenerationResult` içeren, başarısız olursa `GeminiError` içeren bir `Result`.
     func generateResponse(history: [ModelContent], latestPrompt: String, apiKey: String) async -> Result<GenerationResult, GeminiError> {
-        // Ensure the API key is not empty
+        // API anahtarının boş olmadığını kontrol et
         guard !apiKey.isEmpty else {
             return .failure(.apiKeyMissing)
         }
 
-        // Initialize the GenerativeModel with the API key
-        let model = GenerativeModel(name: self.modelName, apiKey: apiKey)
+        // GenerativeModel'ı API anahtarı ile başlat
+        // Not: Hata yönetimi için model başlatmayı da `do-catch` içine almayı düşünebilirsiniz,
+        // ancak `sendMessage` genellikle başlatma hatalarını da yakalar.
+        let model = GenerativeModel(name: modelName, apiKey: apiKey)
         
-        // Start a chat session with the provided history
+        // Sağlanan geçmişle bir sohbet oturumu başlat
         let chat = model.startChat(history: history)
         
         let startTime = Date()
 
         do {
-            // Send the latest prompt to the ongoing chat session
+            // Son istemi devam eden sohbet oturumuna gönder
             let response = try await chat.sendMessage(latestPrompt)
             
             let endTime = Date()
             let responseTimeMs = Int(endTime.timeIntervalSince(startTime) * 1000)
 
-            // Extract the text from the response
+            // Yanıttan metni çıkar
             guard let text = response.text else {
+                // Yanıt metni boşsa veya yoksa hata döndür
                 return .failure(.invalidResponse)
             }
             
-            // Calculate word count
+            // Kelime sayısını hesapla
             let wordCount = text.split { $0.isWhitespace || $0.isNewline }.count
             
-            // Extract token counts (assuming response.usageMetadata exists)
-            // Note: For chat history, token counts might reflect the whole session up to this point
+            // Token sayılarını çıkar (response.usageMetadata'nın var olduğunu varsayarak)
             let promptTokenCount = response.usageMetadata?.promptTokenCount
             let candidatesTokenCount = response.usageMetadata?.candidatesTokenCount
             let totalTokenCount = response.usageMetadata?.totalTokenCount
 
-            // Create the result struct
+            // Sonuç struct'ını oluştur
             let result = GenerationResult(
-                text: text, 
-                wordCount: wordCount, 
+                text: text,
+                wordCount: wordCount,
                 promptTokenCount: promptTokenCount,
                 candidatesTokenCount: candidatesTokenCount,
                 totalTokenCount: totalTokenCount,
                 responseTimeMs: responseTimeMs,
-                modelName: self.modelName
+                modelName: modelName // `self.` kaldırıldı
             )
             
             return .success(result)
             
         } catch {
-            // Handle errors during API communication
-            print("Gemini API Error: \(error)") // Log the specific error
+            // API iletişimi sırasındaki hataları yakala
+            // Geliştirme sırasında hatayı loglamak faydalıdır
+            print("Gemini API Hatası: \(error.localizedDescription)")
             return .failure(.contentGenerationFailed(error))
         }
     }

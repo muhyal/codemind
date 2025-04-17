@@ -139,11 +139,13 @@ class DataManager: ObservableObject {
     func toggleFavorite(withId id: UUID) {
         guard let index = chatSessions.firstIndex(where: { $0.id == id }) else { return }
         
-        // Manually signal that the object is about to change
-        objectWillChange.send()
+        // Create a mutable copy, modify it, and replace the original
+        // This ensures SwiftUI detects the change for the struct array
+        var sessionToUpdate = chatSessions[index]
+        sessionToUpdate.isFavorite.toggle()
+        chatSessions[index] = sessionToUpdate
         
-        chatSessions[index].isFavorite.toggle()
-        // Optional: Re-sort sessions to keep favorites grouped or at the top?
+        // Optional: Re-sort?
         // For now, just save the change.
         print("DataManager: Toggled favorite for session: \(id). New status: \(chatSessions[index].isFavorite)")
         saveSessions()
@@ -154,10 +156,11 @@ class DataManager: ObservableObject {
         guard let index = chatSessions.firstIndex(where: { $0.id == id }) else { return }
         guard !newTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return } // Don't allow empty titles
         
-        // Manually signal that the object is about to change
-        objectWillChange.send()
-        
-        chatSessions[index].title = newTitle
+        // Update using the copy-modify-replace pattern for structs
+        var sessionToUpdate = chatSessions[index]
+        sessionToUpdate.title = newTitle
+        chatSessions[index] = sessionToUpdate
+
         print("DataManager: Updated title for session: \(id) to '\(newTitle)'")
         saveSessions()
     }
@@ -174,10 +177,11 @@ class DataManager: ObservableObject {
              return
         }
         
-        // Manually signal that the object is about to change
-        objectWillChange.send()
-        
-        let deletedEntry = chatSessions[sessionIndex].entries.remove(at: entryIndex)
+        // Update using the copy-modify-replace pattern for the session struct
+        var sessionToUpdate = chatSessions[sessionIndex]
+        let deletedEntry = sessionToUpdate.entries.remove(at: entryIndex) // Modify the copy
+        chatSessions[sessionIndex] = sessionToUpdate // Replace the original
+
         print("DataManager: Deleted entry \(deletedEntry.id) from session \(activeSessionId?.uuidString ?? "None")")
         
         // Save changes
@@ -197,10 +201,11 @@ class DataManager: ObservableObject {
             return
         }
         
-        // Manually signal change before modifying the struct's array
-        objectWillChange.send()
-        
-        chatSessions[index].entries.removeAll()
+        // Update using the copy-modify-replace pattern
+        var sessionToUpdate = chatSessions[index]
+        sessionToUpdate.entries.removeAll() // Modify the copy
+        chatSessions[index] = sessionToUpdate // Replace the original
+
         print("DataManager: Cleared all entries for session \(sessionId).")
         
         // Save changes
@@ -255,19 +260,6 @@ class DataManager: ObservableObject {
         saveSessions()
         print("DataManager: Updated color for session \(id) to \(colorHex ?? "None")")
     }
-
-    // Optional: Provides a binding to the active session's entries
-    // This might be useful in the View, though accessing activeSessionEntries might be enough
-    //    func activeSessionEntriesBinding() -> Binding<[ChatEntry]> {
-    //        Binding<[ChatEntry]>(\n
-    //            get: { self.activeSessionEntries },\n
-    //            set: { newEntries in\n
-    //                guard let index = self.activeSessionIndex else { return }\n
-    //                self.chatSessions[index].entries = newEntries\n
-    //                // Optionally trigger save here if needed, though addEntryToActiveSession handles it\n
-    //            }\n
-    //        )\n
-    //    }
 
     // MARK: - Folder Management
     func createFolder(name: String, parentId: UUID? = nil, colorHex: String? = nil) {
@@ -358,15 +350,6 @@ class DataManager: ObservableObject {
     }
 
     // MARK: - Folder Management - NEW METHODS ADDED
-
-    /// Creates a new folder.
-    func createFolder(name: String, parentId: UUID?) {
-        guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        let newFolder = Folder(name: name, parentId: parentId)
-        folders.append(newFolder)
-        saveFolders()
-        print("DataManager: Created folder '\(name)' with id \(newFolder.id) inside parent \(parentId?.uuidString ?? "Root")")
-    }
 
     /// Renames an existing folder.
     func renameFolder(withId id: UUID, newName: String) {
