@@ -1,6 +1,5 @@
 //
-//  Item.swift
-//  modal-ai
+//  codemind
 //
 //  Created by Muhammed Yalçınkaya on 17.04.2025.
 //

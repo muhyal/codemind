@@ -6,43 +6,47 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		88691E842DB12A3900F3A04F /* GoogleGenerativeAI in Frameworks */ = {isa = PBXBuildFile; productRef = 88691E832DB12A3900F3A04F /* GoogleGenerativeAI */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		88691E522DB1287500F3A04F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 88691E362DB1287300F3A04F /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 88691E3D2DB1287300F3A04F;
-			remoteInfo = "modal-ai";
+			remoteInfo = codemind;
 		};
 		88691E5C2DB1287500F3A04F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 88691E362DB1287300F3A04F /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 88691E3D2DB1287300F3A04F;
-			remoteInfo = "modal-ai";
+			remoteInfo = codemind;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		88691E3E2DB1287300F3A04F /* modal-ai.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "modal-ai.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		88691E512DB1287500F3A04F /* modal-aiTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "modal-aiTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		88691E5B2DB1287500F3A04F /* modal-aiUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "modal-aiUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		88691E3E2DB1287300F3A04F /* codemind.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = codemind.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		88691E512DB1287500F3A04F /* codemindTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = codemindTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		88691E5B2DB1287500F3A04F /* codemindUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = codemindUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		88691E402DB1287300F3A04F /* modal-ai */ = {
+		88691E402DB1287300F3A04F /* codemind */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "modal-ai";
+			path = codemind;
 			sourceTree = "<group>";
 		};
-		88691E542DB1287500F3A04F /* modal-aiTests */ = {
+		88691E542DB1287500F3A04F /* codemindTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "modal-aiTests";
+			path = codemindTests;
 			sourceTree = "<group>";
 		};
-		88691E5E2DB1287500F3A04F /* modal-aiUITests */ = {
+		88691E5E2DB1287500F3A04F /* codemindUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "modal-aiUITests";
+			path = codemindUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				88691E842DB12A3900F3A04F /* GoogleGenerativeAI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -75,9 +80,9 @@
 		88691E352DB1287300F3A04F = {
 			isa = PBXGroup;
 			children = (
-				88691E402DB1287300F3A04F /* modal-ai */,
-				88691E542DB1287500F3A04F /* modal-aiTests */,
-				88691E5E2DB1287500F3A04F /* modal-aiUITests */,
+				88691E402DB1287300F3A04F /* codemind */,
+				88691E542DB1287500F3A04F /* codemindTests */,
+				88691E5E2DB1287500F3A04F /* codemindUITests */,
 				88691E3F2DB1287300F3A04F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -85,9 +90,9 @@
 		88691E3F2DB1287300F3A04F /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				88691E3E2DB1287300F3A04F /* modal-ai.app */,
-				88691E512DB1287500F3A04F /* modal-aiTests.xctest */,
-				88691E5B2DB1287500F3A04F /* modal-aiUITests.xctest */,
+				88691E3E2DB1287300F3A04F /* codemind.app */,
+				88691E512DB1287500F3A04F /* codemindTests.xctest */,
+				88691E5B2DB1287500F3A04F /* codemindUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -95,9 +100,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		88691E3D2DB1287300F3A04F /* modal-ai */ = {
+		88691E3D2DB1287300F3A04F /* codemind */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 88691E652DB1287500F3A04F /* Build configuration list for PBXNativeTarget "modal-ai" */;
+			buildConfigurationList = 88691E652DB1287500F3A04F /* Build configuration list for PBXNativeTarget "codemind" */;
 			buildPhases = (
 				88691E3A2DB1287300F3A04F /* Sources */,
 				88691E3B2DB1287300F3A04F /* Frameworks */,
@@ -108,18 +113,19 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				88691E402DB1287300F3A04F /* modal-ai */,
+				88691E402DB1287300F3A04F /* codemind */,
 			);
-			name = "modal-ai";
+			name = codemind;
 			packageProductDependencies = (
+				88691E832DB12A3900F3A04F /* GoogleGenerativeAI */,
 			);
-			productName = "modal-ai";
-			productReference = 88691E3E2DB1287300F3A04F /* modal-ai.app */;
+			productName = codemind;
+			productReference = 88691E3E2DB1287300F3A04F /* codemind.app */;
 			productType = "com.apple.product-type.application";
 		};
-		88691E502DB1287500F3A04F /* modal-aiTests */ = {
+		88691E502DB1287500F3A04F /* codemindTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 88691E682DB1287500F3A04F /* Build configuration list for PBXNativeTarget "modal-aiTests" */;
+			buildConfigurationList = 88691E682DB1287500F3A04F /* Build configuration list for PBXNativeTarget "codemindTests" */;
 			buildPhases = (
 				88691E4D2DB1287500F3A04F /* Sources */,
 				88691E4E2DB1287500F3A04F /* Frameworks */,
@@ -131,18 +137,18 @@
 				88691E532DB1287500F3A04F /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				88691E542DB1287500F3A04F /* modal-aiTests */,
+				88691E542DB1287500F3A04F /* codemindTests */,
 			);
-			name = "modal-aiTests";
+			name = codemindTests;
 			packageProductDependencies = (
 			);
-			productName = "modal-aiTests";
-			productReference = 88691E512DB1287500F3A04F /* modal-aiTests.xctest */;
+			productName = codemindTests;
+			productReference = 88691E512DB1287500F3A04F /* codemindTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		88691E5A2DB1287500F3A04F /* modal-aiUITests */ = {
+		88691E5A2DB1287500F3A04F /* codemindUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 88691E6B2DB1287500F3A04F /* Build configuration list for PBXNativeTarget "modal-aiUITests" */;
+			buildConfigurationList = 88691E6B2DB1287500F3A04F /* Build configuration list for PBXNativeTarget "codemindUITests" */;
 			buildPhases = (
 				88691E572DB1287500F3A04F /* Sources */,
 				88691E582DB1287500F3A04F /* Frameworks */,
@@ -154,13 +160,13 @@
 				88691E5D2DB1287500F3A04F /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				88691E5E2DB1287500F3A04F /* modal-aiUITests */,
+				88691E5E2DB1287500F3A04F /* codemindUITests */,
 			);
-			name = "modal-aiUITests";
+			name = codemindUITests;
 			packageProductDependencies = (
 			);
-			productName = "modal-aiUITests";
-			productReference = 88691E5B2DB1287500F3A04F /* modal-aiUITests.xctest */;
+			productName = codemindUITests;
+			productReference = 88691E5B2DB1287500F3A04F /* codemindUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -186,7 +192,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 88691E392DB1287300F3A04F /* Build configuration list for PBXProject "modal-ai" */;
+			buildConfigurationList = 88691E392DB1287300F3A04F /* Build configuration list for PBXProject "codemind" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -195,14 +201,17 @@
 			);
 			mainGroup = 88691E352DB1287300F3A04F;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				88691E822DB12A3900F3A04F /* XCRemoteSwiftPackageReference "generative-ai-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 88691E3F2DB1287300F3A04F /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				88691E3D2DB1287300F3A04F /* modal-ai */,
-				88691E502DB1287500F3A04F /* modal-aiTests */,
-				88691E5A2DB1287500F3A04F /* modal-aiUITests */,
+				88691E3D2DB1287300F3A04F /* codemind */,
+				88691E502DB1287500F3A04F /* codemindTests */,
+				88691E5A2DB1287500F3A04F /* codemindUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -258,12 +267,12 @@
 /* Begin PBXTargetDependency section */
 		88691E532DB1287500F3A04F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 88691E3D2DB1287300F3A04F /* modal-ai */;
+			target = 88691E3D2DB1287300F3A04F /* codemind */;
 			targetProxy = 88691E522DB1287500F3A04F /* PBXContainerItemProxy */;
 		};
 		88691E5D2DB1287500F3A04F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 88691E3D2DB1287300F3A04F /* modal-ai */;
+			target = 88691E3D2DB1287300F3A04F /* codemind */;
 			targetProxy = 88691E5C2DB1287500F3A04F /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -388,14 +397,17 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "modal-ai/modal_ai.entitlements";
+				CODE_SIGN_ENTITLEMENTS = codemind/codemind.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"modal-ai/Preview Content\"";
+				CURRENT_PROJECT_VERSION = 100;
+				DEVELOPMENT_ASSET_PATHS = "\"codemind/Preview Content\"";
 				DEVELOPMENT_TEAM = 5YH9H2BB95;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = CodeMind;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -410,8 +422,8 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "kutbu.modal-ai";
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = kutbu.codemind;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
@@ -427,14 +439,17 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "modal-ai/modal_ai.entitlements";
+				CODE_SIGN_ENTITLEMENTS = codemind/codemind.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"modal-ai/Preview Content\"";
+				CURRENT_PROJECT_VERSION = 100;
+				DEVELOPMENT_ASSET_PATHS = "\"codemind/Preview Content\"";
 				DEVELOPMENT_TEAM = 5YH9H2BB95;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = CodeMind;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -449,8 +464,8 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "kutbu.modal-ai";
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = kutbu.codemind;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
@@ -472,14 +487,14 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "kutbu.modal-aiTests";
+				PRODUCT_BUNDLE_IDENTIFIER = kutbu.codemindTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/modal-ai.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/modal-ai";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/codemind.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/codemind";
 				XROS_DEPLOYMENT_TARGET = 2.2;
 			};
 			name = Debug;
@@ -495,14 +510,14 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "kutbu.modal-aiTests";
+				PRODUCT_BUNDLE_IDENTIFIER = kutbu.codemindTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/modal-ai.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/modal-ai";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/codemind.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/codemind";
 				XROS_DEPLOYMENT_TARGET = 2.2;
 			};
 			name = Release;
@@ -517,14 +532,14 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "kutbu.modal-aiUITests";
+				PRODUCT_BUNDLE_IDENTIFIER = kutbu.codemindUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_TARGET_NAME = "modal-ai";
+				TEST_TARGET_NAME = codemind;
 				XROS_DEPLOYMENT_TARGET = 2.2;
 			};
 			name = Debug;
@@ -539,14 +554,14 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "kutbu.modal-aiUITests";
+				PRODUCT_BUNDLE_IDENTIFIER = kutbu.codemindUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_TARGET_NAME = "modal-ai";
+				TEST_TARGET_NAME = codemind;
 				XROS_DEPLOYMENT_TARGET = 2.2;
 			};
 			name = Release;
@@ -554,7 +569,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		88691E392DB1287300F3A04F /* Build configuration list for PBXProject "modal-ai" */ = {
+		88691E392DB1287300F3A04F /* Build configuration list for PBXProject "codemind" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				88691E632DB1287500F3A04F /* Debug */,
@@ -563,7 +578,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		88691E652DB1287500F3A04F /* Build configuration list for PBXNativeTarget "modal-ai" */ = {
+		88691E652DB1287500F3A04F /* Build configuration list for PBXNativeTarget "codemind" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				88691E662DB1287500F3A04F /* Debug */,
@@ -572,7 +587,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		88691E682DB1287500F3A04F /* Build configuration list for PBXNativeTarget "modal-aiTests" */ = {
+		88691E682DB1287500F3A04F /* Build configuration list for PBXNativeTarget "codemindTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				88691E692DB1287500F3A04F /* Debug */,
@@ -581,7 +596,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		88691E6B2DB1287500F3A04F /* Build configuration list for PBXNativeTarget "modal-aiUITests" */ = {
+		88691E6B2DB1287500F3A04F /* Build configuration list for PBXNativeTarget "codemindUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				88691E6C2DB1287500F3A04F /* Debug */,
@@ -591,6 +606,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		88691E822DB12A3900F3A04F /* XCRemoteSwiftPackageReference "generative-ai-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/generative-ai-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.5.6;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		88691E832DB12A3900F3A04F /* GoogleGenerativeAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 88691E822DB12A3900F3A04F /* XCRemoteSwiftPackageReference "generative-ai-swift" */;
+			productName = GoogleGenerativeAI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 88691E362DB1287300F3A04F /* Project object */;
 }

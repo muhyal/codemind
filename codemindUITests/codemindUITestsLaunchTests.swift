@@ -1,13 +1,12 @@
 //
-//  modal_aiUITestsLaunchTests.swift
-//  modal-aiUITests
+//  codemindUITests
 //
 //  Created by Muhammed Yalçınkaya on 17.04.2025.
 //
 
 import XCTest
 
-final class modal_aiUITestsLaunchTests: XCTestCase {
+final class codemindUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true

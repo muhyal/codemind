@@ -1,6 +1,5 @@
 //
-//  modal_aiTests.swift
-//  modal-aiTests
+//  codemindTests
 //
 //  Created by Muhammed Yalçınkaya on 17.04.2025.
 //
