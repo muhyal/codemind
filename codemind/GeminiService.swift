@@ -50,15 +50,21 @@ struct GeminiService {
     /// Gemini API'den yanıt üretir.
     /// - Parameters:
     ///   - history: Konuşma geçmişi. `[ModelContent]` dizisi.
-    ///   - latestPrompt: Kullanıcının gönderdiği son mesaj.
+    ///   - latestPromptParts: Kullanıcının gönderdiği son mesajın parçaları (metin ve/veya görüntü).
     ///   - apiKey: Gemini API anahtarı.
     ///     *Not: Daha güvenli uygulamalar için API anahtarını her çağrıda geçmek yerine
     ///     servis başlatılırken veya güvenli bir depodan (örn. Keychain) almak daha iyidir.*
     /// - Returns: Başarılı olursa `GenerationResult` içeren, başarısız olursa `GeminiError` içeren bir `Result`.
-    func generateResponse(history: [ModelContent], latestPrompt: String, apiKey: String) async -> Result<GenerationResult, GeminiError> {
+    func generateResponse(history: [ModelContent], latestPromptParts: [ModelContent.Part], apiKey: String) async -> Result<GenerationResult, GeminiError> {
         // API anahtarının boş olmadığını kontrol et
         guard !apiKey.isEmpty else {
             return .failure(.apiKeyMissing)
+        }
+        // Son prompt'un boş olmadığından emin ol (hem metin hem görüntü gönderilmemiş olabilir)
+        guard !latestPromptParts.isEmpty else {
+             // Belki özel bir hata dönebilir veya boş bir başarı sonucu?
+             // Şimdilik, content generation failed gibi davranalım.
+             return .failure(.contentGenerationFailed(NSError(domain: "GeminiService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Prompt parts cannot be empty."])))
         }
 
         // GenerativeModel'ı API anahtarı ile başlat
@@ -72,8 +78,8 @@ struct GeminiService {
         let startTime = Date()
 
         do {
-            // Son istemi devam eden sohbet oturumuna gönder
-            let response = try await chat.sendMessage(latestPrompt)
+            // Son istem parça dizisini içeren ModelContent'i bir dizi içine sararak gönder
+            let response = try await chat.sendMessage([ModelContent(parts: latestPromptParts)])
             
             let endTime = Date()
             let responseTimeMs = Int(endTime.timeIntervalSince(startTime) * 1000)

@@ -22,6 +22,8 @@ struct ChatDetailView: View {
     // Local state for this view
     @State private var userInput: String = ""
     @State private var isLoading: Bool = false
+    @State private var capturedImageData: Data? = nil
+    private let screenshotService = ScreenshotService()
     
     /// Computed property for filtered messages (moved from ModalView)
     private var filteredDisplayMessages: [DisplayMessage] {
@@ -128,6 +130,38 @@ struct ChatDetailView: View {
                      .background(.ultraThinMaterial) // Keep this specific background
              }
  
+             // --- Ekran Görüntüsü Önizleme ve Temizleme Alanı ---
+             if let imageData = capturedImageData, let nsImage = NSImage(data: imageData) {
+                 HStack {
+                     Image(nsImage: nsImage)
+                         .resizable()
+                         .aspectRatio(contentMode: .fit)
+                         .frame(height: 40) // Önizleme yüksekliği
+                         .cornerRadius(4)
+                         .padding(.vertical, 4)
+                         
+                     Spacer() // İkonu sağa iter
+                         
+                     Button {
+                         // Görüntüyü ve ilgili durumu temizle
+                         capturedImageData = nil
+                         if statusText == "Screenshot captured." {
+                            statusText = "" // Durum mesajını temizle
+                         }
+                     } label: {
+                         Image(systemName: "xmark.circle.fill")
+                             .foregroundColor(.gray)
+                     }
+                     .buttonStyle(.plain)
+                 }
+                 .padding(.horizontal)
+                 .padding(.bottom, 5) // Giriş alanı ile arasına boşluk
+                 // Belki hafif bir arka plan?
+                 // .background(Color.secondary.opacity(0.1))
+                 // .cornerRadius(8)
+                 .transition(.scale.combined(with: .opacity)) // Güzel bir geçiş efekti
+             }
+ 
              // Input Area (Already has ultraThinMaterial background)
              HStack(spacing: 12) {
                  TextField("Enter your question...", text: $userInput, axis: .vertical)
@@ -163,6 +197,47 @@ struct ChatDetailView: View {
                  .keyboardShortcut(isLoading ? .cancelAction : .defaultAction)
                  .animation(.easeInOut(duration: 0.2), value: isLoading) // Animate changes
                  .animation(.easeInOut(duration: 0.2), value: userInput.isEmpty) // Animate disabled state
+
+                 // Ekran Görüntüsü Butonu Güncellendi
+                 Button {
+                     Task {
+                         isLoading = true // Yükleme durumunu başlat
+                         statusText = "Starting screen capture..."
+                         do {
+                             let imageData = try await screenshotService.captureInteractiveScreenshotToClipboard()
+                             // @MainActor içinde state güncellemesi
+                             await MainActor.run {
+                                  self.capturedImageData = imageData
+                                  statusText = imageData != nil ? "Screenshot captured." : "Screenshot cancelled."
+                                  isLoading = false // Yükleme durumunu bitir
+                             }
+                         } catch let error as ScreenshotError {
+                                  await MainActor.run {
+                                      self.capturedImageData = nil
+                                      // Hata mesajını izin kontrolüne göre güncelle
+                                      var errorMessage = "Screenshot Error: \(error)"
+                                      if case .captureFailed = error {
+                                          errorMessage += "\nPlease check System Settings > Privacy & Security > Screen Recording and grant permission to Codemind (or Terminal/Xcode if running from there)."                                   
+                                      }
+                                      statusText = errorMessage
+                                      isLoading = false
+                                  }
+                             } catch {
+                                  await MainActor.run {
+                                      self.capturedImageData = nil
+                                      statusText = "Error: \(error.localizedDescription)"
+                                      isLoading = false
+                                  }
+                             }
+                     }
+                 } label: {
+                    // Buton görünümünü capturedImageData durumuna göre değiştir
+                    Image(systemName: capturedImageData == nil ? "camera" : "camera.fill") 
+                        .foregroundColor(capturedImageData == nil ? .secondary : .accentColor) // Dolu iken vurgula
+                 }
+                 .buttonStyle(.plain)
+                 .padding(.leading, 5)
+                 .disabled(isLoading) // Yakalama sırasında butonu devre dışı bırak
              }
              .padding()
              .background(.ultraThinMaterial) // Keep this specific background
@@ -184,11 +259,11 @@ struct ChatDetailView: View {
     
     @MainActor
     private func submitQuery() async {
-        guard let activeSessionID = dataManager.activeSessionId else { 
+        guard let activeSessionID = dataManager.activeSessionId else {
             statusText = "Error: No active chat session."
             return
         }
-        guard !userInput.isEmpty else { return }
+        guard !userInput.isEmpty || capturedImageData != nil else { return } 
         guard let apiKey = KeychainHelper.loadAPIKey(), !apiKey.isEmpty else {
             statusText = "Error: API Key is missing. Please add it via Settings (⚙️)."
             return
@@ -196,10 +271,13 @@ struct ChatDetailView: View {
 
         isLoading = true
         let currentInput = userInput
+        let currentImageData = capturedImageData // Copy image data
         userInput = "" // Clear input immediately
+        // Clear image state immediately (don't wait for success)
+        // If submission fails, user can recapture. This simplifies state management.
+        capturedImageData = nil 
         statusText = "Generating response..."
 
-        // Build chat history for the API
         let history: [ModelContent] = dataManager.activeSessionEntries.flatMap { entry -> [ModelContent] in
              var turn: [ModelContent] = []
              if !entry.question.isEmpty { turn.append(ModelContent(role: "user", parts: [.text(entry.question)])) }
@@ -207,20 +285,24 @@ struct ChatDetailView: View {
              return turn
         }
 
-        // Use the passed geminiService instance
-        let result = await geminiService.generateResponse(history: history, latestPrompt: currentInput, apiKey: apiKey)
+        var promptParts: [ModelContent.Part] = []
+        if !currentInput.isEmpty {
+             promptParts.append(.text(currentInput))
+        }
+        if let imageData = currentImageData {
+             promptParts.append(.data(mimetype: "image/png", imageData)) 
+        }
+
+        let result = await geminiService.generateResponse(history: history, latestPromptParts: promptParts, apiKey: apiKey)
 
         isLoading = false // Stop loading indicator regardless of outcome
 
         switch result {
         case .success(let generationResult):
-            // Pass the full generationResult to the DataManager
-            dataManager.addEntryToActiveSession(question: currentInput, generationResult: generationResult)
+            dataManager.addEntryToActiveSession(question: currentInput, /* imageData: currentImageData, */ generationResult: generationResult) 
             statusText = "" // Clear status on success
         case .failure(let error):
-            // Show error in status text area
             statusText = "Error: \(error.localizedDescription)"
-            // Restore user input on error
             userInput = currentInput 
         }
     }

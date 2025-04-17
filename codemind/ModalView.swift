@@ -151,7 +151,7 @@ struct ModalView: View {
         let summarizationPrompt = "Please provide a concise summary of the key points from the following conversation:\n\n---\n\(historyToSummarize)\n---"
 
         // Call the service with an empty history for a single-turn request
-        let result = await geminiService.generateResponse(history: [], latestPrompt: summarizationPrompt, apiKey: apiKey)
+        let result = await geminiService.generateResponse(history: [], latestPromptParts: [.text(summarizationPrompt)], apiKey: apiKey)
         
         statusText = ""
         
