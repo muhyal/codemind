@@ -260,13 +260,14 @@ struct SidebarView: View {
         Button("Cancel", role: .cancel) { }
     }
 
-    // Recursive View Builder with Indentation Level
+    // Recursive View Builder with Indentation Level - Reverted Refactoring
     @ViewBuilder
     private func outlineGroupContent(parentId: UUID?, level: Int) -> some View {
-        let indent = CGFloat(level * 15) // Indentation amount per level
-
+        // indent değişkeni VStack içinde
         VStack(alignment: .leading, spacing: 0) {
-            // --- Folders ---
+            let indent = CGFloat(level * 15) // Indentation amount per level
+
+            // --- Folders --- (Tekrar inline)
             let allFoldersAtLevel = parentId == nil ? dataManager.rootFolders : dataManager.subfolders(in: parentId!)
             let foldersToShow = allFoldersAtLevel.filter { folder in
                 (selectedFilter == .favorites) ? dataManager.folderContainsFavorites(folderId: folder.id) : true
@@ -274,18 +275,25 @@ struct SidebarView: View {
             
             ForEach(foldersToShow) { folder in
                 DisclosureGroup {
-                    outlineGroupContent(parentId: folder.id, level: level + 1) // Increase level for children
+                    outlineGroupContent(parentId: folder.id, level: level + 1)
                 } label: {
                     FolderRow(folder: folder, isHovering: hoverId == "folder-\(folder.id.uuidString)")
-                        .padding(.leading, indent) // Apply indentation
-                        .contentShape(Rectangle()) // Make whole row tappable for hover/context menu
+                        .padding(.leading, indent)
+                        .contentShape(Rectangle())
                 }
-                .accentColor(.secondary) // Change disclosure indicator color
+                .accentColor(.secondary)
                 .contextMenu { folderContextMenu(for: folder) }
                 .onHover { isHovering in hoverId = isHovering ? "folder-\(folder.id.uuidString)" : nil }
+                /* // Swipe actions geçici olarak devre dışı
+                .swipeActions(
+                    leading: folderLeadingSwipeActions(for: folder),
+                    trailing: folderTrailingSwipeActions(for: folder),
+                    allowsFullSwipe: true
+                )
+                */
             }
 
-            // --- Sessions ---
+            // --- Sessions --- (Tekrar inline)
             let currentSessions = parentId == nil ? dataManager.rootSessions : dataManager.sessions(in: parentId!)
             let sessionsToShow = currentSessions.filter { shouldDisplay(session: $0) }
 
@@ -296,18 +304,36 @@ struct SidebarView: View {
                      isSelected: dataManager.activeSessionId == session.id,
                      isHovering: hoverId == sessionIdString
                  )
-                     .padding(.leading, indent + 5) // Apply indentation + slight extra for session
-                     .background( // Add background for selection/hover
+                     .padding(.leading, indent + 5)
+                     .background(
                          RoundedRectangle(cornerRadius: 5)
                              .fill(dataManager.activeSessionId == session.id ? Color.accentColor.opacity(0.2) : (hoverId == sessionIdString ? Color.gray.opacity(0.1) : Color.clear))
                      )
-                     .contentShape(Rectangle()) // Make whole row tappable
+                     .contentShape(Rectangle())
                      .contextMenu { sessionContextMenu(for: session) }
                      .onTapGesture { dataManager.activeSessionId = session.id }
                      .onHover { isHovering in hoverId = isHovering ? sessionIdString : nil }
+                     /* // Swipe actions geçici olarak devre dışı
+                     .swipeActions(
+                         leading: sessionLeadingSwipeActions(for: session),
+                         trailing: sessionTrailingSwipeActions(for: session),
+                         allowsFullSwipe: true
+                     )
+                     */
             }
         }
     }
+    
+    // --- Helper fonksiyonları kaldırıldı ---
+    /*
+    // Helper ViewBuilder for Folders Section
+    @ViewBuilder
+    private func folderSection(parentId: UUID?, level: Int, indent: CGFloat) -> some View { ... }
+
+    // Helper ViewBuilder for Sessions Section
+    @ViewBuilder
+    private func sessionSection(parentId: UUID?, level: Int, indent: CGFloat) -> some View { ... }
+    */
     
     // Keep shouldDisplay helper
     private func shouldDisplay(session: ChatSession) -> Bool {
@@ -440,6 +466,84 @@ struct SidebarView: View {
                 }
             }
         }
+    }
+
+    // Extracted Session Move To Folder Menu Content (Context Menu'den uyarlandı)
+    @ViewBuilder
+    private func sessionMoveToFolderMenuContent(for session: ChatSession) -> some View {
+        Button { // Move to Root
+            Task { await MainActor.run { dataManager.moveSessionToFolder(sessionId: session.id, newParentId: nil) } }
+        } label: {
+            Label("Root Level", systemImage: session.folderId == nil ? "checkmark.circle.fill" : "circle")
+        }
+        Divider()
+        ForEach(dataManager.folders.sorted { $0.name < $1.name }) { folder in
+            Button { // Move to specific folder
+                Task { await MainActor.run { dataManager.moveSessionToFolder(sessionId: session.id, newParentId: folder.id) } }
+            } label: {
+                Label {
+                    Text(folder.name)
+                        .lineLimit(1)
+                } icon: {
+                    Image(systemName: session.folderId == folder.id ? "checkmark" : "folder")
+                }
+            }
+        }
+    }
+
+    // MARK: - Swipe Action Helper Functions
+
+    private func folderLeadingSwipeActions(for folder: Folder) -> [SwipeAction] {
+        return [
+            // Renk Ayarla Eylemi (Menu Kullanarak)
+            SwipeAction(tint: .purple, icon: "paintpalette.fill", label: "Color") {
+                colorSubMenuContent(for: folder)
+            },
+            // Yeniden Adlandır Eylemi
+            SwipeAction(tint: .blue, icon: "pencil", label: "Rename") {
+                setupFolderAlert(action: .renameFolder, folder: folder)
+            }
+        ]
+    }
+
+    private func folderTrailingSwipeActions(for folder: Folder) -> [SwipeAction] {
+        return [
+            // Yeni Alt Klasör Eylemi
+            SwipeAction(tint: .gray, icon: "folder.badge.plus", label: "New") {
+                setupFolderAlert(action: .newSubfolder, folder: folder)
+            },
+            // Sil Eylemi
+            SwipeAction(tint: .red, icon: "trash.fill", label: "Delete") {
+                folderToDelete = folder
+                showingDeleteFolderConfirm = true
+            }
+        ]
+    }
+
+    private func sessionLeadingSwipeActions(for session: ChatSession) -> [SwipeAction] {
+        return [
+            // Renk Ayarla Eylemi (Menu Kullanarak)
+            SwipeAction(tint: .purple, icon: "paintpalette.fill", label: "Color") {
+                colorSubMenuContent(for: session)
+            },
+            // Klasöre Taşı Eylemi (Menu Kullanarak)
+            SwipeAction(tint: .gray, icon: "folder.fill", label: "Move") {
+                sessionMoveToFolderMenuContent(for: session)
+            }
+        ]
+    }
+
+    private func sessionTrailingSwipeActions(for session: ChatSession) -> [SwipeAction] {
+        return [
+            // Favori Ekle/Kaldır Eylemi
+            SwipeAction(tint: .yellow, icon: session.isFavorite ? "star.slash.fill" : "star.fill", label: session.isFavorite ? "Unfav" : "Favorite") {
+                Task { await MainActor.run { dataManager.toggleFavorite(withId: session.id) } }
+            },
+            // Sil Eylemi
+            SwipeAction(tint: .red, icon: "trash.fill", label: "Delete") {
+                Task { await MainActor.run { dataManager.deleteSession(withId: session.id) } }
+            }
+        ]
     }
 }
 
