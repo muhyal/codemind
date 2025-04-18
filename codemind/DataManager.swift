@@ -349,6 +349,70 @@ class DataManager: ObservableObject {
         return false
     }
 
+    // MARK: - Filtered Data for UI (Performance Optimization)
+
+    @MainActor // Ensure filtering runs on the main thread for UI updates
+    func filteredFolders(parentId: UUID?, currentFilter: SidebarFilter, colorHexFilter: String?) -> [Folder] {
+        // Start with the correct base list of folders
+        let baseFolders = parentId == nil ? rootFolders : subfolders(in: parentId!)
+        
+        // Apply filters sequentially
+        return baseFolders.filter { folder in
+            // 1. Color Filter (Apply first if present)
+            if let colorFilter = colorHexFilter, folder.colorHex != colorFilter {
+                return false // Exclude if color doesn't match the filter
+            }
+            
+            // 2. Favorites Filter (Apply if .favorites is selected)
+            if currentFilter == .favorites && !folderContainsFavorites(folderId: folder.id) {
+                return false // Exclude if filter is .favorites and folder doesn't contain any
+            }
+            
+            // If all checks pass, include the folder
+            return true
+        }
+        // Note: Sorting is already handled by rootFolders/subfolders properties
+    }
+
+    @MainActor // Ensure filtering runs on the main thread for UI updates
+    func filteredSessions(parentId: UUID?, currentFilter: SidebarFilter, colorHexFilter: String?) -> [ChatSession] {
+        // Start with the correct base list of sessions
+        let baseSessions = parentId == nil ? rootSessions : sessions(in: parentId!)
+        
+        // Apply filters sequentially
+        return baseSessions.filter { session in
+            // 1. Color Filter (Apply first if present)
+            if let colorFilter = colorHexFilter, session.colorHex != colorFilter {
+                return false // Exclude if color doesn't match the filter
+            }
+            
+            // 2. Favorites Filter (Apply if .favorites is selected)
+            if currentFilter == .favorites && !session.isFavorite {
+                return false // Exclude if filter is .favorites and session is not a favorite
+            }
+            
+            // If all checks pass, include the session
+            return true
+        }
+        // Note: Sorting is already handled by rootSessions/sessions(in:) methods
+    }
+
+    /// Checks if a folder (`folderId`) is a descendant of another folder (`ancestorId`).
+    func isDescendant(folderId: UUID, of ancestorId: UUID) -> Bool {
+        guard let folder = folders.first(where: { $0.id == folderId }), let parentId = folder.parentId else {
+            // If the folder doesn't exist or has no parent, it cannot be a descendant
+            return false
+        }
+        
+        // If the direct parent is the ancestor, it's a descendant
+        if parentId == ancestorId {
+            return true
+        }
+        
+        // Recursively check the parent
+        return isDescendant(folderId: parentId, of: ancestorId)
+    }
+
     // MARK: - Folder Management - NEW METHODS ADDED
 
     /// Renames an existing folder.

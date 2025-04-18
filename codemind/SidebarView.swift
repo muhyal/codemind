@@ -26,6 +26,12 @@ struct SidebarView: View {
     // State for hover effects
     @State private var hoverId: String? = nil
 
+    // State to store the dynamically read row height
+    @State private var currentRowHeight: CGFloat = 44 // Default height
+
+    // State to trigger swipe action reset
+    @State private var swipeResetTrigger: Bool = false
+
     // Enum for folder actions (Internal to Sidebar)
     enum FolderActionType {
         case newRootFolder, newSubfolder, renameFolder
@@ -33,7 +39,7 @@ struct SidebarView: View {
 
     @EnvironmentObject var dataManager: DataManager
     @Environment(\.colorScheme) var colorScheme // Get color scheme
-    @Environment(\.openSettings) var openSettings // <-- ADDED for standard settings window
+    // @Environment(\.openSettings) var openSettings // <-- REMOVED: Rely on standard Cmd+,
 
     // Predefined colors (Used internally by Sidebar)
     private let availableColors: [String?] = [
@@ -56,6 +62,8 @@ struct SidebarView: View {
 
                 Spacer()
 
+                // REMOVED Settings button
+                /*
                 // Group buttons for better spacing control if needed
                 HStack(spacing: 15) { // Increase spacing
                     Button { openSettings() } label: {
@@ -66,6 +74,7 @@ struct SidebarView: View {
                     .help("Settings")
                     .contentShape(Rectangle()) // Ensure tappable area
                 }
+                */
             }
             .padding(.horizontal)
             .padding(.top, 10) // Add top padding
@@ -95,13 +104,13 @@ struct SidebarView: View {
                     HStack(spacing: 4) {
                         if let selectedColor = selectedColorHexFilter {
                             Circle().fill(colorFromHex(selectedColor)).frame(width: 12, height: 12) // Slightly larger dot
-                            Text(colorName(from: selectedColor)) // <-- Re-added color name
+                            Text(colorName(from: selectedColor))
                                 .font(.caption)
                                 .lineLimit(1)
                         } else {
                              Image(systemName: "paintpalette")
                                  .imageScale(.small) // Adjust icon size
-                             Text("Color") // <-- Re-added "Color" text for non-selected state
+                             Text("Color")
                                 .font(.caption)
                         }
                     }
@@ -111,7 +120,7 @@ struct SidebarView: View {
                     .foregroundStyle(.primary) // Ensure text is readable
                 }
                 .menuStyle(.borderlessButton)
-                .frame(width: 85) // Adjust width slightly
+                // REMOVED: .frame(width: 85) // Let it size intrinsically
 
                 Spacer() // Pushes filters and color button left
                 
@@ -131,22 +140,20 @@ struct SidebarView: View {
                 .buttonStyle(.plain)
                 .help("New Chat")
                 .contentShape(Rectangle())
-
-                // Removed Spacer() from here as buttons are now at the end
             }
             .padding(.horizontal)
             .padding(.vertical, 8) // Add vertical padding
 
-            // --- Content List ---
+            // --- Content List --- (Height reading added)
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 2) { // Add small spacing between items
-                    outlineGroupContent(parentId: nil, level: 0) // Start with root level, pass indentation level
+                LazyVStack(alignment: .leading, spacing: 2) {
+                    outlineGroupContent(parentId: nil, level: 0)
                 }
-                .padding(.horizontal, 5) // Add some horizontal padding to the stack
+                .padding(.horizontal, 5)
             }
             .background(.clear)
             .scrollContentBackground(.hidden)
-            .padding(.top, 0) // Remove top padding from ScrollView
+            .padding(.top, 0)
 
             // --- Footer ---
             Divider() // Add divider above footer
@@ -168,7 +175,7 @@ struct SidebarView: View {
              Button("Cancel", role: .cancel) { }
         } message: { Text(folderAlertMessage) }
         .confirmationDialog(
-            "Delete Folder '\(folderToDelete?.name ?? "")'?",
+            "Delete Folder '\(folderToDelete?.name ?? "")'",
             isPresented: $showingDeleteFolderConfirm,
             presenting: folderToDelete
         ) { folder in folderDeleteConfirmationActions(folder: folder) }
@@ -181,28 +188,28 @@ struct SidebarView: View {
     // Extracted Color Filter Menu Content
     @ViewBuilder
     private func colorFilterMenuContent() -> some View {
-        Button { selectedColorHexFilter = nil } label: {
-             Label("All Colors", systemImage: selectedColorHexFilter == nil ? "checkmark.circle.fill" : "circle")
+        Button {
+            selectedColorHexFilter = nil
+            swipeResetTrigger.toggle() // Reset swipes if filter changes
+        } label: {
+            Label("All Colors", systemImage: selectedColorHexFilter == nil ? "checkmark.circle.fill" : "circle")
         }
         Divider()
         ForEach(availableColors.compactMap { $0 }, id: \.self) { colorHex in
-             Button { selectedColorHexFilter = colorHex } label: {
-                 // Use Label to combine Circle and Text
-                 Label {
-                     Text(colorName(from: colorHex))
-                 } icon: {
-                     Circle().fill(colorFromHex(colorHex)).frame(width: 12, height: 12)
-                 }
-                 // Add Checkmark separately if needed, ensuring Spacer pushes it right
+             Button {
+                 selectedColorHexFilter = colorHex
+                 swipeResetTrigger.toggle() // Reset swipes if filter changes
+             } label: {
                  HStack {
+                     Circle().fill(colorFromHex(colorHex)).frame(width: 12, height: 12)
+                     Text(colorName(from: colorHex))
                      Spacer()
                      if selectedColorHexFilter == colorHex {
                          Image(systemName: "checkmark")
+                             .foregroundColor(.accentColor) // Ensure checkmark is visible
                      }
                  }
              }
-             // Removed the explicit HStack wrapper as Label handles layout, but need to ensure checkmark is positioned
-             // This might require further adjustment if checkmark isn't right-aligned
         }
     }
     
@@ -235,6 +242,7 @@ struct SidebarView: View {
     }
 
     // Helper to handle folder alert save action
+    // NOTE: Ideally, this logic moves to DataManager
     private func handleFolderAction() async {
          switch folderActionType {
          case .newRootFolder:
@@ -260,18 +268,26 @@ struct SidebarView: View {
         Button("Cancel", role: .cancel) { }
     }
 
-    // Recursive View Builder with Indentation Level - Reverted Refactoring
+    // Recursive View Builder (Height reading added)
+    // NOTE: Filtering logic ideally moves to DataManager
     @ViewBuilder
     private func outlineGroupContent(parentId: UUID?, level: Int) -> some View {
-        // indent değişkeni VStack içinde
         VStack(alignment: .leading, spacing: 0) {
-            let indent = CGFloat(level * 15) // Indentation amount per level
+            let indent = CGFloat(level * 15)
 
-            // --- Folders --- (Tekrar inline)
+            // --- Folders ---
+            // Call DataManager for filtered folders (Requires implementation in DataManager)
+            let foldersToShow = dataManager.filteredFolders(parentId: parentId, currentFilter: selectedFilter, colorHexFilter: selectedColorHexFilter)
+            /* // OLD INLINE FILTERING - Moved to DataManager
             let allFoldersAtLevel = parentId == nil ? dataManager.rootFolders : dataManager.subfolders(in: parentId!)
             let foldersToShow = allFoldersAtLevel.filter { folder in
-                (selectedFilter == .favorites) ? dataManager.folderContainsFavorites(folderId: folder.id) : true
+                // Filter by favorite status if needed
+                let favoriteCheck = (selectedFilter == .favorites) ? dataManager.folderContainsFavorites(folderId: folder.id) : true
+                // Filter by color if needed
+                let colorCheck = (selectedColorHexFilter == nil) || (folder.colorHex == selectedColorHexFilter)
+                return favoriteCheck && colorCheck
             }
+            */
             
             ForEach(foldersToShow) { folder in
                 DisclosureGroup {
@@ -280,23 +296,41 @@ struct SidebarView: View {
                     FolderRow(folder: folder, isHovering: hoverId == "folder-\(folder.id.uuidString)")
                         .padding(.leading, indent)
                         .contentShape(Rectangle())
+                        // Read row height using background GeometryReader
+                        .background(
+                            GeometryReader { proxy in
+                                Color.clear.preference(key: RowHeightPreferenceKey.self, value: proxy.size.height)
+                            }
+                        )
                 }
                 .accentColor(.secondary)
+                // Capture row height preference
+                .onPreferenceChange(RowHeightPreferenceKey.self) { height in
+                    // Only update if height is different and positive
+                    if height > 0 && self.currentRowHeight != height {
+                         self.currentRowHeight = height
+                    }
+                }
                 .contextMenu { folderContextMenu(for: folder) }
                 .onHover { isHovering in hoverId = isHovering ? "folder-\(folder.id.uuidString)" : nil }
-                /* // Swipe actions geçici olarak devre dışı
+                // Pass the read height to swipeActions
                 .swipeActions(
                     leading: folderLeadingSwipeActions(for: folder),
                     trailing: folderTrailingSwipeActions(for: folder),
-                    allowsFullSwipe: true
+                    allowsFullSwipe: true,
+                    rowHeight: currentRowHeight,
+                    resetTrigger: $swipeResetTrigger
                 )
-                */
             }
 
-            // --- Sessions --- (Tekrar inline)
+            // --- Sessions ---
+            // Call DataManager for filtered sessions (Requires implementation in DataManager)
+            let sessionsToShow = dataManager.filteredSessions(parentId: parentId, currentFilter: selectedFilter, colorHexFilter: selectedColorHexFilter)
+            /* // OLD INLINE FILTERING - Moved to DataManager
             let currentSessions = parentId == nil ? dataManager.rootSessions : dataManager.sessions(in: parentId!)
             let sessionsToShow = currentSessions.filter { shouldDisplay(session: $0) }
-
+            */
+            
             ForEach(sessionsToShow) { session in
                  let sessionIdString = "session-\(session.id.uuidString)"
                  SessionRow(
@@ -310,32 +344,40 @@ struct SidebarView: View {
                              .fill(dataManager.activeSessionId == session.id ? Color.accentColor.opacity(0.2) : (hoverId == sessionIdString ? Color.gray.opacity(0.1) : Color.clear))
                      )
                      .contentShape(Rectangle())
+                     // Read row height using background GeometryReader
+                     .background(
+                         GeometryReader { proxy in
+                             Color.clear.preference(key: RowHeightPreferenceKey.self, value: proxy.size.height)
+                         }
+                     )
+                     // Capture row height preference
+                    .onPreferenceChange(RowHeightPreferenceKey.self) { height in
+                         // Only update if height is different and positive
+                        if height > 0 && self.currentRowHeight != height {
+                             self.currentRowHeight = height
+                        }
+                     }
                      .contextMenu { sessionContextMenu(for: session) }
-                     .onTapGesture { dataManager.activeSessionId = session.id }
+                     .onTapGesture {
+                          dataManager.activeSessionId = session.id
+                          swipeResetTrigger.toggle() // Reset other swipes when selecting a new row
+                     }
                      .onHover { isHovering in hoverId = isHovering ? sessionIdString : nil }
-                     /* // Swipe actions geçici olarak devre dışı
+                      // Pass the read height to swipeActions
                      .swipeActions(
                          leading: sessionLeadingSwipeActions(for: session),
                          trailing: sessionTrailingSwipeActions(for: session),
-                         allowsFullSwipe: true
+                         allowsFullSwipe: true,
+                         rowHeight: currentRowHeight,
+                         resetTrigger: $swipeResetTrigger
                      )
-                     */
             }
         }
     }
     
-    // --- Helper fonksiyonları kaldırıldı ---
-    /*
-    // Helper ViewBuilder for Folders Section
-    @ViewBuilder
-    private func folderSection(parentId: UUID?, level: Int, indent: CGFloat) -> some View { ... }
-
-    // Helper ViewBuilder for Sessions Section
-    @ViewBuilder
-    private func sessionSection(parentId: UUID?, level: Int, indent: CGFloat) -> some View { ... }
-    */
-    
-    // Keep shouldDisplay helper
+    // NOTE: shouldDisplay is no longer used directly for filtering the main list,
+    // as that logic is now in DataManager.filteredSessions.
+    // It might still be useful elsewhere, or can be removed if not needed.
     private func shouldDisplay(session: ChatSession) -> Bool {
         if selectedFilter == .favorites && !session.isFavorite { return false }
         if let colorFilter = selectedColorHexFilter, session.colorHex != colorFilter { return false }
@@ -353,20 +395,8 @@ struct SidebarView: View {
             showingEditAlert = true
         } label: { Label("Edit Title", systemImage: "pencil") }
         
-        Menu { // Move To Folder
-            Button {
-                Task { await MainActor.run { dataManager.moveSessionToFolder(sessionId: session.id, newParentId: nil) } }
-            } label: {
-                Label("Root Level", systemImage: session.folderId == nil ? "checkmark.circle.fill" : "circle")
-            }
-            Divider()
-            ForEach(dataManager.folders.sorted { $0.name < $1.name }) { folder in
-                Button {
-                    Task { await MainActor.run { dataManager.moveSessionToFolder(sessionId: session.id, newParentId: folder.id) } }
-                } label: {
-                    Label { Text(folder.name) } icon: { Image(systemName: session.folderId == folder.id ? "checkmark" : "folder") }
-                }
-            }
+        Menu { // Move To Folder (Use the extracted menu content)
+            sessionMoveToFolderMenuContent(for: session)
         } label: { Label("Move To...", systemImage: "folder") }
         
         Menu { colorSubMenuContent(for: session) } label: { Label("Set Color", systemImage: "paintpalette") }
@@ -397,18 +427,25 @@ struct SidebarView: View {
         // Move Folder Menu
         Menu {
             // Option to move to Root
-            Button {
-                Task { await MainActor.run { dataManager.moveFolder(folderId: folder.id, newParentId: nil) } }
+            Button { // WRAPPED IN TASK
+                Task { 
+                    await MainActor.run { dataManager.moveFolder(folderId: folder.id, newParentId: nil) } 
+                    swipeResetTrigger.toggle() // Reset swipe on completion
+                }
             } label: {
                 Label("Root Level", systemImage: folder.parentId == nil ? "checkmark.circle.fill" : "circle")
             }
             
             Divider()
             
-            // List available folders (excluding self and descendants - simplified filter)
-            ForEach(dataManager.folders.filter { $0.id != folder.id && $0.parentId != folder.id }.sorted { $0.name < $1.name }) { potentialParent in
-                Button {
-                    Task { await MainActor.run { dataManager.moveFolder(folderId: folder.id, newParentId: potentialParent.id) } }
+            // List available folders (excluding self and descendants)
+            // NOTE: Assumes `isDescendant` is implemented in DataManager
+            ForEach(dataManager.folders.filter { $0.id != folder.id && !dataManager.isDescendant(folderId: $0.id, of: folder.id) }.sorted { $0.name < $1.name }) { potentialParent in
+                Button { // WRAPPED IN TASK
+                    Task { 
+                        await MainActor.run { dataManager.moveFolder(folderId: folder.id, newParentId: potentialParent.id) } 
+                        swipeResetTrigger.toggle() // Reset swipe on completion
+                    }
                 } label: {
                     Label { Text(potentialParent.name) } icon: { Image(systemName: folder.parentId == potentialParent.id ? "checkmark" : "folder") }
                 }
@@ -426,16 +463,19 @@ struct SidebarView: View {
         } label: { Label("Delete Folder...", systemImage: "trash.fill") }
     }
 
-    // Reusable Color Submenu Content
+    // Reusable Color Submenu Content (Ensured Task wrapping)
     @ViewBuilder
     private func colorSubMenuContent(for item: any Identifiable & HasColor) -> some View {
-        Button {
+        Button { // Set color to None
              Task { // Wrap in Task
-                 if let session = item as? ChatSession {
-                     await MainActor.run { dataManager.updateSessionColor(withId: session.id, colorHex: nil) }
-                 } else if let folder = item as? Folder {
-                     await MainActor.run { dataManager.updateFolderColor(withId: folder.id, colorHex: nil) }
+                 await MainActor.run {
+                     if let session = item as? ChatSession {
+                         dataManager.updateSessionColor(withId: session.id, colorHex: nil)
+                     } else if let folder = item as? Folder {
+                         dataManager.updateFolderColor(withId: folder.id, colorHex: nil)
+                     }
                  }
+                 swipeResetTrigger.toggle() // Reset swipe on completion
              }
         } label: {
             HStack {
@@ -449,13 +489,16 @@ struct SidebarView: View {
         Divider()
         
         ForEach(availableColors.compactMap { $0 }, id: \.self) { colorHexValue in
-            Button {
+            Button { // Set color to specific value
                  Task { // Wrap in Task
-                     if let session = item as? ChatSession {
-                         await MainActor.run { dataManager.updateSessionColor(withId: session.id, colorHex: colorHexValue) }
-                     } else if let folder = item as? Folder {
-                         await MainActor.run { dataManager.updateFolderColor(withId: folder.id, colorHex: colorHexValue) }
+                     await MainActor.run {
+                         if let session = item as? ChatSession {
+                             dataManager.updateSessionColor(withId: session.id, colorHex: colorHexValue)
+                         } else if let folder = item as? Folder {
+                             dataManager.updateFolderColor(withId: folder.id, colorHex: colorHexValue)
+                         }
                      }
+                     swipeResetTrigger.toggle() // Reset swipe on completion
                  }
             } label: {
                 HStack {
@@ -468,18 +511,24 @@ struct SidebarView: View {
         }
     }
 
-    // Extracted Session Move To Folder Menu Content (Context Menu'den uyarlandı)
+    // Extracted Session Move To Folder Menu Content (Ensured Task wrapping)
     @ViewBuilder
     private func sessionMoveToFolderMenuContent(for session: ChatSession) -> some View {
         Button { // Move to Root
-            Task { await MainActor.run { dataManager.moveSessionToFolder(sessionId: session.id, newParentId: nil) } }
+            Task { // WRAPPED IN TASK
+                 await MainActor.run { dataManager.moveSessionToFolder(sessionId: session.id, newParentId: nil) }
+                 swipeResetTrigger.toggle() // Reset swipe on completion
+            }
         } label: {
             Label("Root Level", systemImage: session.folderId == nil ? "checkmark.circle.fill" : "circle")
         }
         Divider()
         ForEach(dataManager.folders.sorted { $0.name < $1.name }) { folder in
             Button { // Move to specific folder
-                Task { await MainActor.run { dataManager.moveSessionToFolder(sessionId: session.id, newParentId: folder.id) } }
+                Task { // WRAPPED IN TASK
+                     await MainActor.run { dataManager.moveSessionToFolder(sessionId: session.id, newParentId: folder.id) }
+                     swipeResetTrigger.toggle() // Reset swipe on completion
+                }
             } label: {
                 Label {
                     Text(folder.name)
@@ -495,39 +544,45 @@ struct SidebarView: View {
 
     private func folderLeadingSwipeActions(for folder: Folder) -> [SwipeAction] {
         return [
-            // Renk Ayarla Eylemi (Menu Kullanarak)
+            // Set Color Action (Using Menu)
             SwipeAction(tint: .purple, icon: "paintpalette.fill", label: "Color") {
+                // Content is built by the ViewBuilder, actions inside are already wrapped in Task
                 colorSubMenuContent(for: folder)
             },
-            // Yeniden Adlandır Eylemi
+            // Rename Action
             SwipeAction(tint: .blue, icon: "pencil", label: "Rename") {
                 setupFolderAlert(action: .renameFolder, folder: folder)
+                swipeResetTrigger.toggle() // Ensure reset after triggering alert
             }
         ]
     }
 
     private func folderTrailingSwipeActions(for folder: Folder) -> [SwipeAction] {
         return [
-            // Yeni Alt Klasör Eylemi
+            // New Subfolder Action
             SwipeAction(tint: .gray, icon: "folder.badge.plus", label: "New") {
                 setupFolderAlert(action: .newSubfolder, folder: folder)
+                swipeResetTrigger.toggle() // Ensure reset after triggering alert
             },
-            // Sil Eylemi
+            // Delete Action
             SwipeAction(tint: .red, icon: "trash.fill", label: "Delete") {
                 folderToDelete = folder
                 showingDeleteFolderConfirm = true
+                // Confirmation dialog handles its own logic, reset happens if deleted
             }
         ]
     }
 
     private func sessionLeadingSwipeActions(for session: ChatSession) -> [SwipeAction] {
         return [
-            // Renk Ayarla Eylemi (Menu Kullanarak)
+            // Set Color Action (Using Menu)
             SwipeAction(tint: .purple, icon: "paintpalette.fill", label: "Color") {
+                 // Content is built by the ViewBuilder, actions inside are already wrapped in Task
                 colorSubMenuContent(for: session)
             },
-            // Klasöre Taşı Eylemi (Menu Kullanarak)
+            // Move To Folder Action (Using Menu)
             SwipeAction(tint: .gray, icon: "folder.fill", label: "Move") {
+                 // Content is built by the ViewBuilder, actions inside are already wrapped in Task
                 sessionMoveToFolderMenuContent(for: session)
             }
         ]
@@ -535,65 +590,21 @@ struct SidebarView: View {
 
     private func sessionTrailingSwipeActions(for session: ChatSession) -> [SwipeAction] {
         return [
-            // Favori Ekle/Kaldır Eylemi
-            SwipeAction(tint: .yellow, icon: session.isFavorite ? "star.slash.fill" : "star.fill", label: session.isFavorite ? "Unfav" : "Favorite") {
-                Task { await MainActor.run { dataManager.toggleFavorite(withId: session.id) } }
+            // Toggle Favorite Action
+            SwipeAction(tint: session.isFavorite ? .orange : .gray, icon: session.isFavorite ? "star.slash.fill" : "star.fill", label: session.isFavorite ? "Unfav" : "Favorite") { // Adjusted tint based on state
+                Task { 
+                    await MainActor.run { dataManager.toggleFavorite(withId: session.id) } 
+                    swipeResetTrigger.toggle() // Reset swipe on completion
+                }
             },
-            // Sil Eylemi
+            // Delete Action
             SwipeAction(tint: .red, icon: "trash.fill", label: "Delete") {
-                Task { await MainActor.run { dataManager.deleteSession(withId: session.id) } }
+                Task { 
+                    await MainActor.run { dataManager.deleteSession(withId: session.id) } 
+                    // No need to reset swipe here, row will disappear
+                }
             }
         ]
     }
 }
 
-// MARK: - Row Views - REMOVE DUPLICATES
-
-// // View for displaying a single Session row
-// struct SessionRow: View {
-//     let session: ChatSession
-//     let isSelected: Bool
-//     
-//     var body: some View {
-//         HStack {
-//             // Color indicator (optional)
-//             if let hex = session.colorHex, let color = Color(hex: hex) {
-//                 Circle().fill(color).frame(width: 8, height: 8)
-//             }
-//             Text(session.title)
-//                 .lineLimit(1)
-//                 .truncationMode(.tail)
-//             Spacer()
-//             if session.isFavorite {
-//                 Image(systemName: "star.fill")
-//                     .foregroundColor(.yellow)
-//                     .font(.caption) // Make star smaller
-//             }
-//         }
-//         .padding(.vertical, 4) // Adjust padding for better spacing
-//     }
-// }
-//
-// // View for displaying a Folder row (used in DisclosureGroup label)
-// struct FolderRow: View {
-//     let folder: Folder
-//
-//     var body: some View {
-//         HStack {
-//             // Color indicator (optional)
-//             if let hex = folder.colorHex, let color = Color(hex: hex) {
-//                 Circle().fill(color).frame(width: 8, height: 8)
-//             }
-//             Image(systemName: "folder.fill") // Use filled folder icon
-//                 .foregroundColor(.secondary) // Slightly dimmer color
-//             Text(folder.name)
-//                 .lineLimit(1)
-//                 .truncationMode(.tail)
-//             Spacer()
-//         }
-//         .padding(.vertical, 4) // Consistent padding with SessionRow
-//     }
-// }
-
-// MARK: - Preview
-// ... existing code ... 
