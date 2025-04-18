@@ -24,6 +24,7 @@ CodeMind, Google'ın Üretken Yapay Zekası tarafından desteklenen akıllı bir
 *   **📂 Klasör Organizasyonu:** İlgili oturumları iç içe yerleştirme desteğiyle klasörler halinde gruplayın.
 *   **🎨 Renk Kodlaması:** Oturumları ve klasörleri daha iyi görsel organizasyon için özel renklerle etiketleyin.
 *   **⭐ Favoriler:** Önemli oturumları hızlı erişim için favori olarak işaretleyin.
+*   **⌨️ Hızlı Erişim:** Global klavye kısayolu (varsayılan: çift **Option (⌥)**) ile uygulamayı anında gösterin/gizleyin.
 *   **🧭 Zengin Kenar Çubuğu:** Oturumlara ve klasörlere dinamik ve etkileşimli bir kenar çubuğuyla kolayca göz atın.
 *   **🖱️ Bağlam Menüleri ve Kaydırma Eylemleri:** Yeniden adlandırma, silme, taşıma, favorilere ekleme ve renklendirme gibi eylemleri bağlam menüleri ve kaydırma hareketleriyle (trackpad) hızla gerçekleştirin.
 *   **💾 Kalıcılık:** Oturumlar ve klasörler yerel olarak `UserDefaults` kullanılarak kaydedilir.
@@ -36,6 +37,7 @@ CodeMind, Google'ın Üretken Yapay Zekası tarafından desteklenen akıllı bir
 *   **Google Generative AI SDK for Swift:** Google'ın yapay zeka modelleriyle arayüz oluşturmak için.
 *   **Combine:** Reaktif programlama için (`ObservableObject`).
 *   **UserDefaults:** Yerel veri kalıcılığı için.
+*   **AppKit:** Global klavye kısayolu izleme ve Erişilebilirlik API'ları için.
 
 ## 🛠️ Başlarken
 
@@ -47,10 +49,13 @@ CodeMind, Google'ın Üretken Yapay Zekası tarafından desteklenen akıllı bir
 2.  **Xcode'da Açın:** `codemind.xcodeproj` dosyasını açın.
 3.  **API Anahtarını Yapılandırın:** Google Generative AI API anahtarınızı sağlamanız gerekecektir. Muhtemelen `GenerativeModel`'in başlatıldığı ilgili kod bölümlerini (`ChatViewModel.swift` veya benzeri olabilir) kontrol edin veya bir yapılandırma adımı ekleyin. (Uygulamanın çalışması için bu adım kritik öneme sahiptir.)
 4.  **Derleyin ve Çalıştırın:** Bir macOS hedefi seçin ve uygulamayı çalıştırın (Cmd+R).
+5.  **Erişilebilirlik İzinleri:** Uygulama ilk çalıştığında, global klavye kısayolunun (çift Option) çalışabilmesi için Sistem Ayarları > Gizlilik ve Güvenlik > Erişilebilirlik bölümünden izin vermeniz istenebilir.
 
 ## ⚙️ Kullanım
 
-Uygulamayı başlatın. Yeni sohbet oturumları oluşturmak için kenar çubuğundaki '+' düğmesini veya Cmd+N kısayolunu kullanın. Oturumlarınızı kenar çubuğu düğmeleri, sürükle-bırak veya öğeler üzerindeki bağlam menüleri/kaydırma eylemleri aracılığıyla klasörler kullanarak düzenleyin. Oturumları veya klasörleri renklendirmek ve favorilere eklemek için bağlam menülerini veya kaydırma eylemlerini kullanın.
+1.  **Uygulamayı Göster/Gizle:** Herhangi bir uygulamadayken **Option (⌥)** tuşuna hızlıca iki kez basarak CodeMind penceresini anında açın veya gizleyin.
+2.  **Sohbet Başlatma:** Yeni sohbet oturumları oluşturmak için kenar çubuğundaki '+' düğmesini veya Cmd+N kısayolunu kullanın.
+3.  **Sohbet ve Yönetim:** Oturumlarınızı kenar çubuğu düğmeleri, sürükle-bırak veya öğeler üzerindeki bağlam menüleri/kaydırma eylemleri aracılığıyla klasörler kullanarak düzenleyin. Oturumları veya klasörleri renklendirmek ve favorilere eklemek için bağlam menülerini veya kaydırma eylemlerini kullanın.
 
 ## ❤️ Katkıda Bulunma
 
@@ -58,4 +63,4 @@ Katkılarınızı bekliyoruz! Lütfen bir "issue" açın veya bir "pull request"
 
 ## 📄 Lisans
 
-Bu proje [MIT Lisansı](LICENSE) altında lisanslanmıştır. (Projenize bir `LICENSE` dosyası eklemeyi unutmayın.) 
+Bu proje [MIT Lisansı](LICENSE) altında lisanslanmıştır. 
