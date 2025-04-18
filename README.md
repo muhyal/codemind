@@ -1,77 +1,61 @@
-# codemind 🧠✨
+# CodeMind
 
-[![macOS](https://img.shields.io/badge/macOS-14.0%2B-blue)](https://www.apple.com/macos)
-[![Swift](https://img.shields.io/badge/Swift-5.x-orange.svg)](https://swift.org)
-[![SwiftUI](https://img.shields.io/badge/SwiftUI-Modern-green.svg)](https://developer.apple.com/xcode/swiftui/)
+<!-- Logo Yer Tutucusu -->
+<p align="center">
+  <img src="codemind/Assets.xcassets/AppIcon.appiconset/1024.png" alt="CodeMind Logo" width="200"/>
+  <!-- TODO: Yukarıdaki `src` yolunu logo dosyanızın yoluyla değiştirin (örn: Resources/logo.png) -->
+</p>
 
-Google'ın Gemini AI modelleriyle sohbet etmek için kusursuz, klavye odaklı bir arayüz sağlayan yerel bir macOS uygulamasıdır. Modern bir kullanıcı deneyimi için SwiftUI ile oluşturulmuştur.
+<p align="center">
+  <em>AI-Powered Tools for Smarter Development</em>
+</p>
 
-## 🚀 Temel Özellikler
+---
 
-*   **Anında Erişim:** Global bir klavye kısayolu (Hızlıca çift **Option (⌥)** tuşu) kullanarak sohbet arayüzünü anında çağırın.
-*   **Gemini Gücü:** Google'ın hızlı ve yetenekli `gemini-2.0-flash` modelinden yararlanın.
-*   **Oturum Yönetimi:** Konuşmalarınızı ayrı sohbet oturumları halinde düzenleyin.
-*   **Kenar Çubuğu Kontrolleri:** Sohbetleri filtreleyin (Tümü/Favoriler), oturumları yeniden adlandırın, favori olarak işaretleyin, başlıkları kopyalayın ve içerik menüsü aracılığıyla kolayca silin.
-*   **Metadata Gösterimi:** Her AI yanıtı için kelime sayısı, token kullanımı (mevcutsa), yanıt süresi ve kullanılan model gibi ayrıntılı bilgileri görün.
-*   **Yerel Kalıcılık:** Sohbet geçmişiniz cihazınızda `UserDefaults` kullanılarak güvenli bir şekilde saklanır.
-*   **Güvenli API Anahtarı Saklama:** Gemini API anahtarınız sistem Anahtar Zinciri'nde (Keychain) güvenli bir şekilde saklanır.
-*   **SwiftUI Arayüzü:** Tamamen SwiftUI ile oluşturulmuş modern, duyarlı arayüz.
-*   **Erişilebilirlik Entegrasyonu:** Global klavye kısayolu için gereken Erişilebilirlik izinlerini uygun şekilde ister.
+<!-- İsteğe Bağlı Rozetler: Projenize uygun olanları ekleyebilirsiniz -->
+<!-- [![Build Status](...)](...) [![License](...)](...) -->
 
-## 📸 Ekran Görüntüleri
+CodeMind, Google'ın Üretken Yapay Zekası tarafından desteklenen akıllı bir sohbet arayüzü sağlayarak geliştirme iş akışını iyileştirmek için tasarlanmış yerel bir macOS uygulamasıdır. Kodlama yardımı, beyin fırtınası ve daha fazlası için yapay zeka modelleriyle etkileşim kurun ve konuşmalarınızı sezgisel bir arayüzde kolayca yönetin ve organize edin.
 
-<!-- Uygulamanın arayüzünü gösteren ekran görüntüleri veya GIF'ler ekleyin -->
-*Kenar Çubuğu, Sohbet Balonları, Ayarlar Ekranı vb.*
+## ✨ Temel Özellikler
 
-## 🛠️ Kurulum
+*   **🧠 Yapay Zeka Sohbet Arayüzü:** Kodlama yardımı, fikir üretme ve daha fazlası için Google Generative AI modelleriyle etkileşim kurun.
+*   **🗂️ Oturum Yönetimi:** Konuşmaları ayrı sohbet oturumlarında düzenleyin.
+*   **📂 Klasör Organizasyonu:** İlgili oturumları iç içe yerleştirme desteğiyle klasörler halinde gruplayın.
+*   **🎨 Renk Kodlaması:** Oturumları ve klasörleri daha iyi görsel organizasyon için özel renklerle etiketleyin.
+*   **⭐ Favoriler:** Önemli oturumları hızlı erişim için favori olarak işaretleyin.
+*   **🧭 Zengin Kenar Çubuğu:** Oturumlara ve klasörlere dinamik ve etkileşimli bir kenar çubuğuyla kolayca göz atın.
+*   **🖱️ Bağlam Menüleri ve Kaydırma Eylemleri:** Yeniden adlandırma, silme, taşıma, favorilere ekleme ve renklendirme gibi eylemleri bağlam menüleri ve kaydırma hareketleriyle (trackpad) hızla gerçekleştirin.
+*   **💾 Kalıcılık:** Oturumlar ve klasörler yerel olarak `UserDefaults` kullanılarak kaydedilir.
+*   **💻 Modern macOS Arayüzü:** SwiftUI ile oluşturulmuş, macOS İnsan Arayüzü Yönergelerine uygun modern bir arayüz.
+
+## 🚀 Kullanılan Teknolojiler
+
+*   **Swift:** Ana programlama dili.
+*   **SwiftUI:** macOS için modern kullanıcı arayüzü çatısı.
+*   **Google Generative AI SDK for Swift:** Google'ın yapay zeka modelleriyle arayüz oluşturmak için.
+*   **Combine:** Reaktif programlama için (`ObservableObject`).
+*   **UserDefaults:** Yerel veri kalıcılığı için.
+
+## 🛠️ Başlarken
 
 1.  **Depoyu Klonlayın:**
     ```bash
-    git clone https://github.com/muhyal/codemind.git
-    ```
-2.  **Dizine Gidin:**
-    ```bash
+    git clone https://github.com/kullanici-adiniz/codemind.git # Depo URL'niz ile değiştirin
     cd codemind
     ```
-3.  **Projeyi Xcode'da Açın:**
-    ```bash
-    open codemind.xcodeproj
-    ```
-4.  **İmzalama (Signing & Capabilities):** Gerekirse kendi Apple Geliştirici hesabınız için Xcode'da imzalama ayarlarını yapılandırın.
-5.  **Derleyin ve Çalıştırın:** Xcode'da `Cmd + R` tuşlarına basın.
+2.  **Xcode'da Açın:** `codemind.xcodeproj` dosyasını açın.
+3.  **API Anahtarını Yapılandırın:** Google Generative AI API anahtarınızı sağlamanız gerekecektir. Muhtemelen `GenerativeModel`'in başlatıldığı ilgili kod bölümlerini (`ChatViewModel.swift` veya benzeri olabilir) kontrol edin veya bir yapılandırma adımı ekleyin. (Uygulamanın çalışması için bu adım kritik öneme sahiptir.)
+4.  **Derleyin ve Çalıştırın:** Bir macOS hedefi seçin ve uygulamayı çalıştırın (Cmd+R).
 
-## 💡 Kullanım
+## ⚙️ Kullanım
 
-1.  **Başlatma:** Uygulama arka planda çalışır. Başlangıçta standart bir ana pencere açılmaz.
-2.  **Sohbeti Açma/Kapatma:** macOS'un herhangi bir yerindeyken **Option (⌥)** tuşuna hızlıca iki kez basın. Sohbet penceresi açılacaktır. Tekrar aynı işlemi yapmak pencereyi kapatır.
-3.  **İlk Çalıştırma ve İzinler:** İlk çalıştırmada, Sistem Ayarları > Gizlilik ve Güvenlik > Erişilebilirlik bölümünden **Erişilebilirlik** iznini vermeniz istenebilir. Bu, global klavye kısayolunun çalışması için gereklidir.
-4.  **API Anahtarı:** Uygulamanın çalışması için bir Google AI Gemini API anahtarına ihtiyacınız vardır.
-    *   [Google AI Studio](https://aistudio.google.com/app/apikey) adresinden bir anahtar edinin.
-    *   Sohbet penceresinin kenar çubuğu başlığındaki **Ayarlar (⚙️)** düğmesine tıklayarak anahtarınızı uygulamaya ekleyin.
-5.  **Sohbet Etme:** Kenar çubuğundan bir sohbet oturumu seçin (veya '+' düğmesiyle yeni bir tane oluşturun). Sorgunuzu alttaki giriş alanına yazın ve Enter tuşuna basın veya gönder düğmesine tıklayın.
-6.  **Sohbetleri Yönetme:** Kenar çubuğundaki bir sohbet oturumuna sağ tıklayarak (veya Control tuşuna basılı tutarak tıklayarak) Başlığı Düzenle, Başlığı Kopyala, Favori/Favoriden Çıkar ve Sil gibi seçeneklere erişin. Kenar çubuğunun üstündeki filtreyi kullanarak Tüm Sohbetleri veya sadece Favorileri görüntüleyin.
+Uygulamayı başlatın. Yeni sohbet oturumları oluşturmak için kenar çubuğundaki '+' düğmesini veya Cmd+N kısayolunu kullanın. Oturumlarınızı kenar çubuğu düğmeleri, sürükle-bırak veya öğeler üzerindeki bağlam menüleri/kaydırma eylemleri aracılığıyla klasörler kullanarak düzenleyin. Oturumları veya klasörleri renklendirmek ve favorilere eklemek için bağlam menülerini veya kaydırma eylemlerini kullanın.
 
-## ⚙️ Yapılandırma
+## ❤️ Katkıda Bulunma
 
-*   **Gemini API Anahtarı:** Uygulamanın temel işlevi için zorunludur. Ayarlar ekranından eklenmelidir.
-*   **Global Kısayol:** Şu anda `AppDelegate.swift` dosyasında çift **Option** tuşuna basma olarak kodlanmıştır.
-
-## 💻 Teknoloji Yığını
-
-*   Swift 5.x
-*   SwiftUI
-*   GoogleGenerativeAI SDK (`gemini-2.0-flash` modeli)
-*   AppKit (AppDelegate, NSWindow, NSEvent izleme, Erişilebilirlik API'ları için)
-*   Combine (ObservableObject için)
-*   UserDefaults (Oturum kalıcılığı için)
-*   Keychain Services (API anahtarı saklama için)
-
-## ✨ Katkıda Bulunma
-
-Katkılarınız memnuniyetle karşılanır! Lütfen bir Pull Request göndermekten çekinmeyin.
+Katkılarınızı bekliyoruz! Lütfen bir "issue" açın veya bir "pull request" gönderin.
 
 ## 📄 Lisans
 
-Bu proje, kaynak kodunu inceleme, değiştirme ve kişisel, eğitim veya kar amacı gütmeyen projelerde kullanma özgürlüğü sunan açık kaynaklı bir yazılımdır.
-
-**Ancak, bu yazılımın veya türevlerinin herhangi bir ticari amaçla kullanılması kesinlikle yasaktır.** Ticari kullanım için ayrı bir lisans anlaşması gereklidir. Daha fazla bilgi için lütfen proje sahibiyle iletişime geçin. 
+Bu proje [MIT Lisansı](LICENSE) altında lisanslanmıştır. (Projenize bir `LICENSE` dosyası eklemeyi unutmayın.) 
